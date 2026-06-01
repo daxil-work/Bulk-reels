@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+/* Ensure Tailwind scans the Vite entry + all React components */
+@source "../index.html";
+@source "./**/*.{js,jsx}";
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  background: #04060a;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root,
+#reel-root {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom scrollbars for webkit */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+}
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
