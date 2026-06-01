@@ -11,10 +11,25 @@ function SectionHeader({ children }) {
   );
 }
 
+function CloseButton({ onClose }) {
+  if (!onClose) return null;
+  return (
+    <button
+      type="button"
+      aria-label="Close settings"
+      onClick={onClose}
+      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/80 transition hover:bg-white/10 lg:hidden"
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    </button>
+  );
+}
+
 export default function SettingsPanel({
   accent,
   downloadLabel,
-  downloadNote,
   recOn,
   onDownload,
   onResetAll,
@@ -27,24 +42,22 @@ export default function SettingsPanel({
   t,
   setTweak,
   lookNames,
+  onClose,
 }) {
   return (
-    <aside className="flex h-full w-[380px] shrink-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0e1016] shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)]">
+    <aside className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0e1016] shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)] lg:w-[380px] lg:shrink-0">
       <div className="shrink-0 border-b border-white/[0.08] px-5 py-5">
+        <div className="mb-4 flex items-center justify-between gap-3 lg:hidden">
+          <h2 className="font-[Jost,sans-serif] text-sm font-semibold text-white/90">Settings</h2>
+          <CloseButton onClose={onClose} />
+        </div>
         <DownloadButton
           accent={accent}
           disabled={recOn}
           onClick={onDownload}
           label={downloadLabel}
-          note={downloadNote}
+          onResetAll={onResetAll}
         />
-        <button
-          type="button"
-          onClick={onResetAll}
-          className="mt-5 w-full rounded-xl border border-white/[0.1] bg-white/[0.04] px-4 py-3 font-[Jost,sans-serif] text-[12px] font-medium tracking-wide text-white/65 transition hover:border-white/[0.16] hover:bg-white/[0.08] hover:text-white/90"
-        >
-          Reset all to defaults
-        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-6 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.14)_transparent]">

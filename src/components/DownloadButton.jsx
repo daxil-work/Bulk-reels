@@ -1,22 +1,29 @@
 import React from 'react';
 
-export default function DownloadButton({ accent, disabled, onClick, label, note }) {
+export default function DownloadButton({
+  accent,
+  disabled,
+  onClick,
+  label,
+  onResetAll,
+}) {
   return (
-    <div className="space-y-3">
+    <div className="flex items-center gap-2">
       <button
         type="button"
         onClick={onClick}
         disabled={disabled}
         style={{ background: accent }}
-        className="inline-flex w-full items-center justify-center gap-2.5 rounded-full border-0 px-5 py-3.5 font-[Jost,sans-serif] text-sm font-medium tracking-[0.06em] text-[#04121f] shadow-[0_10px_28px_-10px_rgba(0,0,0,0.65)] transition-[transform,filter,box-shadow] duration-200 hover:-translate-y-0.5 hover:brightness-[1.05] hover:shadow-[0_14px_32px_-10px_rgba(0,0,0,0.7)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-90"
+        title={label}
+        className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border-0 px-3.5 py-2 font-[Jost,sans-serif] text-xs font-medium tracking-wide text-[#04121f] shadow-[0_6px_20px_-8px_rgba(0,0,0,0.55)] transition hover:brightness-[1.05] disabled:cursor-not-allowed disabled:opacity-90 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm"
       >
         {disabled ? (
-          <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 shrink-0">
+          <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4">
             <circle cx="12" cy="12" r="9" stroke="rgba(4,18,31,0.3)" strokeWidth="3" />
             <path d="M12 3a9 9 0 0 1 9 9" stroke="#04121f" strokeWidth="3" strokeLinecap="round" />
           </svg>
         ) : (
-          <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 shrink-0">
+          <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4">
             <path
               d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5"
               stroke="#04121f"
@@ -32,11 +39,18 @@ export default function DownloadButton({ accent, disabled, onClick, label, note 
             />
           </svg>
         )}
-        {label}
+        <span className="max-w-[5.5rem] truncate sm:max-w-[9rem]">{label}</span>
       </button>
-      <p className="px-1 font-[Jost,sans-serif] text-[12px] leading-relaxed text-white/45">
-        {note}
-      </p>
+      {onResetAll ? (
+        <button
+          type="button"
+          onClick={onResetAll}
+          title="Reset all to defaults"
+          className="shrink-0 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-2 font-[Jost,sans-serif] text-[10px] font-medium whitespace-nowrap text-white/65 transition hover:bg-white/[0.08] hover:text-white/90 sm:px-3 sm:text-[11px]"
+        >
+          Reset
+        </button>
+      ) : null}
     </div>
   );
 }
