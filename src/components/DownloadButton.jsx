@@ -5,10 +5,14 @@ export default function DownloadButton({
   disabled,
   onClick,
   label,
+  note,
   onResetAll,
+  onBulkDownload,
+  bulkLabel = 'Bulk ZIP',
+  bulkDisabled,
 }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <button
         type="button"
         onClick={onClick}
@@ -41,6 +45,24 @@ export default function DownloadButton({
         )}
         <span className="max-w-[5.5rem] truncate sm:max-w-[9rem]">{label}</span>
       </button>
+      {note ? (
+        <p
+          className="hidden min-w-0 flex-1 truncate font-[Jost,sans-serif] text-[10px] text-white/45 sm:block sm:text-[11px]"
+          title={note}
+        >
+          {note}
+        </p>
+      ) : null}
+      {onBulkDownload ? (
+        <button
+          type="button"
+          onClick={onBulkDownload}
+          disabled={bulkDisabled || disabled}
+          className="shrink-0 rounded-lg border border-white/15 bg-white/[0.06] px-2.5 py-2 font-[Jost,sans-serif] text-[10px] font-medium whitespace-nowrap text-white/80 transition hover:bg-white/10 disabled:opacity-50 sm:px-3 sm:text-[11px]"
+        >
+          {bulkLabel}
+        </button>
+      ) : null}
       {onResetAll ? (
         <button
           type="button"

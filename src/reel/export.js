@@ -160,11 +160,11 @@ export async function recordRealtime(cfg, onProgress) {
   return done;
 }
 
-export function downloadBlob(blob, ext) {
+export function downloadBlob(blob, ext, baseName = 'before-after-reel') {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `before-after-reel.${ext}`;
+  a.download = `${baseName}.${ext}`;
   document.body.appendChild(a);
   a.click();
   setTimeout(() => {

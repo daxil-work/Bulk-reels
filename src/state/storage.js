@@ -88,3 +88,12 @@ export function saveSelectedIdea(id) {
     localStorage.setItem(SELECTED_IDEA_KEY, id);
   } catch {}
 }
+
+export const THEMES_COLLECTION_KEY = 'reel-themes-collection';
+
+export function clearThemesCollection() {
+  try {
+    localStorage.removeItem(THEMES_COLLECTION_KEY);
+    localStorage.removeItem('reel-selected-theme');
+  } catch {}
+}

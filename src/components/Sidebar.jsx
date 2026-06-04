@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 
 function CloseButton({ onClose }) {
   if (!onClose) return null;
@@ -16,7 +16,17 @@ function CloseButton({ onClose }) {
   );
 }
 
-export default function Sidebar({ ideas, selectedId, onSelect, onClose }) {
+export default function Sidebar({
+  ideas,
+  selectedId,
+  onSelect,
+  onClose,
+  onImportFolder,
+  onImportPack,
+}) {
+  const folderRef = useRef(null);
+  const packRef = useRef(null);
+
   const handleSelect = (id) => {
     onSelect(id);
     onClose?.();
@@ -30,6 +40,51 @@ export default function Sidebar({ ideas, selectedId, onSelect, onClose }) {
         </h1>
         <CloseButton onClose={onClose} />
       </div>
+      {(onImportFolder || onImportPack) && (
+        <div className="space-y-2 border-b border-white/[0.08] px-4 py-3">
+          <input
+            ref={folderRef}
+            type="file"
+            className="hidden"
+            webkitdirectory=""
+            directory=""
+            multiple
+            onChange={(e) => {
+              if (e.target.files?.length) onImportFolder?.(e.target.files);
+              e.target.value = '';
+            }}
+          />
+          <input
+            ref={packRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onImportPack?.(f);
+              e.target.value = '';
+            }}
+          />
+          {onImportFolder && (
+            <button
+              type="button"
+              onClick={() => folderRef.current?.click()}
+              className="w-full rounded-lg bg-white/90 px-3 py-2 font-[Jost,sans-serif] text-[11px] font-medium text-[#04121f] hover:bg-white"
+            >
+              Import themes folder
+            </button>
+          )}
+          {onImportPack && (
+            <button
+              type="button"
+              onClick={() => packRef.current?.click()}
+              className="w-full rounded-lg border border-white/10 px-3 py-2 font-[Jost,sans-serif] text-[11px] font-medium text-white/75 hover:bg-white/[0.06]"
+            >
+              Import theme-pack
+            </button>
+          )}
+        </div>
+      )}
       <nav className="flex-1 space-y-2 overflow-y-auto px-4 py-4 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.12)_transparent]">
         {ideas.map((idea) => {
           const active = idea.id === selectedId;

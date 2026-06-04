@@ -30,8 +30,12 @@ function CloseButton({ onClose }) {
 export default function SettingsPanel({
   accent,
   downloadLabel,
+  downloadNote,
   recOn,
   onDownload,
+  onBulkDownload,
+  bulkDownloadLabel,
+  bulkBusy,
   onResetAll,
   slots,
   setImage,
@@ -56,6 +60,10 @@ export default function SettingsPanel({
           disabled={recOn}
           onClick={onDownload}
           label={downloadLabel}
+          note={downloadNote}
+          onBulkDownload={onBulkDownload}
+          bulkLabel={bulkDownloadLabel}
+          bulkDisabled={bulkBusy}
           onResetAll={onResetAll}
         />
       </div>
