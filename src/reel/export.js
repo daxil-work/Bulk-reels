@@ -1,6 +1,7 @@
 import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 import { loadImg, drawReel } from './drawReel.js';
 import { keyBlackToTransparent, isLogoSrc } from './logoUtils.js';
+import { ALL_FONTS } from './fontUtils.js';
 
 function pickMime() {
   const cands = ['video/mp4;codecs=avc1.640028', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
@@ -20,6 +21,7 @@ export async function preloadAssets(headFam, srcs, bodyFam = 'Jost') {
       document.fonts.load(`700 66px "${bodyFam}"`),
       document.fonts.load(`500 24px "${bodyFam}"`),
       document.fonts.load(`400 30px "${bodyFam}"`),
+      ...ALL_FONTS.map((f) => document.fonts.load(`500 60px "${f}"`)),
     ]);
     await document.fonts.ready;
   } catch {}

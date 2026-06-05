@@ -23,6 +23,7 @@ import {
   timings,
 } from './config.js';
 import { buildPaletteFromTweaks } from './paletteUtils.js';
+import { buildFR, ALL_FONTS } from './fontUtils.js';
 import {
   Atmosphere,
   FullShot,
@@ -54,11 +55,12 @@ function buildPalette(t) {
 function buildFonts(t) {
   const headFam = HEAD_FONTS.includes(t.headlineFont) ? t.headlineFont : 'Cormorant Garamond';
   const bodyFam = BODY_FONTS.includes(t.bodyFont) ? t.bodyFont : 'Jost';
-  return {
-    headFam,
-    bodyFam,
-    fonts: { serif: `'${headFam}', serif`, sans: `'${bodyFam}', sans-serif` },
+  const fonts = {
+    serif: `'${headFam}', serif`,
+    sans: `'${bodyFam}', sans-serif`,
   };
+  fonts.FR = buildFR(t, fonts.sans, fonts.serif);
+  return { headFam, bodyFam, fonts };
 }
 
 function buildMotion(t) {
@@ -226,6 +228,43 @@ function SettingsControls({ t, setTweak, lookNames }) {
       />
       <TweakSelect label="Body font" value={t.bodyFont} options={BODY_FONTS} onChange={(v) => setTweak('bodyFont', v)} />
 
+      <TweakSection label="Text · fonts & sizes" />
+      <TweakSelect
+        label="Wordmark font"
+        value={t.fontWordmark || 'Default'}
+        options={['Default', ...ALL_FONTS]}
+        onChange={(v) => setTweak('fontWordmark', v)}
+      />
+      <TweakSlider label="Wordmark size" value={t.sizeWordmark ?? 100} min={50} max={180} step={5} unit="%" onChange={(v) => setTweak('sizeWordmark', v)} />
+      <TweakSelect
+        label="Headline font"
+        value={t.fontHeadline || 'Default'}
+        options={['Default', ...ALL_FONTS]}
+        onChange={(v) => setTweak('fontHeadline', v)}
+      />
+      <TweakSlider label="Headline size" value={t.sizeHeadline ?? 100} min={50} max={180} step={5} unit="%" onChange={(v) => setTweak('sizeHeadline', v)} />
+      <TweakSelect
+        label="Subhead font (italic lines)"
+        value={t.fontSubhead || 'Default'}
+        options={['Default', ...ALL_FONTS]}
+        onChange={(v) => setTweak('fontSubhead', v)}
+      />
+      <TweakSlider label="Subhead size" value={t.sizeSubhead ?? 100} min={50} max={180} step={5} unit="%" onChange={(v) => setTweak('sizeSubhead', v)} />
+      <TweakSelect
+        label="Label font (Before/After)"
+        value={t.fontLabel || 'Default'}
+        options={['Default', ...ALL_FONTS]}
+        onChange={(v) => setTweak('fontLabel', v)}
+      />
+      <TweakSlider label="Label size" value={t.sizeLabel ?? 145} min={50} max={180} step={5} unit="%" onChange={(v) => setTweak('sizeLabel', v)} />
+      <TweakSelect
+        label="Caption font (theme / URL)"
+        value={t.fontCaption || 'Default'}
+        options={['Default', ...ALL_FONTS]}
+        onChange={(v) => setTweak('fontCaption', v)}
+      />
+      <TweakSlider label="Caption size" value={t.sizeCaption ?? 100} min={50} max={180} step={5} unit="%" onChange={(v) => setTweak('sizeCaption', v)} />
+
       <TweakSection label="Pacing & transition" />
       <TweakSelect
         label="Before→After transition"
@@ -241,6 +280,15 @@ function SettingsControls({ t, setTweak, lookNames }) {
         step={0.1}
         unit="s"
         onChange={(v) => setTweak('transLen', v)}
+      />
+      <TweakSlider
+        label="Before image screen time"
+        value={t.beforeHold ?? 5.8}
+        min={3}
+        max={10}
+        step={0.2}
+        unit="s"
+        onChange={(v) => setTweak('beforeHold', v)}
       />
       <TweakSlider
         label="Look duration (each photo)"

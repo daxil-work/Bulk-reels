@@ -245,8 +245,8 @@ export function ShotLabel({
       <div style={{ width: 60 * line, height: 2, background: pal.accent, marginBottom: 22, boxShadow: TXT_SHADOW }} />
       <div
         style={{
-          fontFamily: fonts.sans,
-          fontSize: 22,
+          fontFamily: fonts.FR?.label?.fam || fonts.sans,
+          fontSize: 22 * (fonts.FR?.label?.s || 1),
           fontWeight: 500,
           letterSpacing: `${0.46 + lsExtra}em`,
           textTransform: 'uppercase',
@@ -260,9 +260,9 @@ export function ShotLabel({
       {sub ? (
         <div
           style={{
-            fontFamily: fonts.serif,
+            fontFamily: fonts.FR?.subhead?.fam || fonts.serif,
             fontStyle: 'italic',
-            fontSize: 46,
+            fontSize: 46 * (fonts.FR?.subhead?.s || 1),
             fontWeight: 500,
             color: pal.ink,
             marginTop: 6,
@@ -399,8 +399,8 @@ export function TitleCard({ pal, fonts, t }) {
       ) : null}
       <div
         style={{
-          fontFamily: fonts.sans,
-          fontSize: 48,
+          fontFamily: fonts.FR?.wordmark?.fam || fonts.sans,
+          fontSize: 48 * (fonts.FR?.wordmark?.s || 1),
           fontWeight: 700,
           letterSpacing: '0.13em',
           textTransform: 'uppercase',
@@ -418,9 +418,9 @@ export function TitleCard({ pal, fonts, t }) {
       <div style={{ width: ruleW, height: 1.5, background: pal.accent, opacity: 0.7, margin: '0 0 26px' }} />
       <div
         style={{
-          fontFamily: fonts.serif,
+          fontFamily: fonts.FR?.headline?.fam || fonts.serif,
           fontWeight: 600,
-          fontSize: 100,
+          fontSize: 100 * (fonts.FR?.headline?.s || 1),
           lineHeight: 1.02,
           color: pal.ink,
           textShadow: TXT_SHADOW,
@@ -446,8 +446,8 @@ export function TitleCard({ pal, fonts, t }) {
       <div style={{ width: 90, height: 1.5, background: pal.accent, opacity: 0.6, margin: '0 auto 20px' }} />
       <div
         style={{
-          fontFamily: fonts.sans,
-          fontSize: 26,
+          fontFamily: fonts.FR?.caption?.fam || fonts.sans,
+          fontSize: 26 * (fonts.FR?.caption?.s || 1),
           fontWeight: 500,
           letterSpacing: '0.36em',
           textTransform: 'uppercase',
@@ -494,8 +494,8 @@ export function EndCard({ pal, fonts, t }) {
       ) : null}
       <div
         style={{
-          fontFamily: fonts.sans,
-          fontSize: 48,
+          fontFamily: fonts.FR?.wordmark?.fam || fonts.sans,
+          fontSize: 48 * (fonts.FR?.wordmark?.s || 1),
           fontWeight: 700,
           letterSpacing: '0.13em',
           textTransform: 'uppercase',
@@ -513,10 +513,10 @@ export function EndCard({ pal, fonts, t }) {
       <div style={{ width: ruleW, height: 1.5, background: pal.accent, opacity: 0.7, margin: '0 0 26px' }} />
       <div
         style={{
-          fontFamily: fonts.serif,
+          fontFamily: fonts.FR?.subhead?.fam || fonts.serif,
           fontStyle: 'italic',
           fontWeight: 500,
-          fontSize: 46,
+          fontSize: 46 * (fonts.FR?.subhead?.s || 1),
           lineHeight: 1.1,
           color: pal.ink,
           maxWidth: 760,
@@ -533,8 +533,8 @@ export function EndCard({ pal, fonts, t }) {
       <div style={{ width: 90, height: 1.5, background: pal.accent, opacity: 0.6, margin: '0 auto 20px' }} />
       <div
         style={{
-          fontFamily: fonts.sans,
-          fontSize: 26,
+          fontFamily: fonts.FR?.caption?.fam || fonts.sans,
+          fontSize: 26 * (fonts.FR?.caption?.s || 1),
           fontWeight: 500,
           letterSpacing: '0.3em',
           textTransform: 'uppercase',

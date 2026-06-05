@@ -1,5 +1,6 @@
 import { Easing } from '../engine/animations.jsx';
 import { lerp, fadeIO, clamp, LOGO_GLOW_SRC } from './config.js';
+import { buildFR } from './fontUtils.js';
 
 const _imgCache = {};
 
@@ -68,6 +69,7 @@ export function drawReel(ctx, time, cfg) {
   const cyc = ch / 2;
   const sans = `"${bodyFam || 'Jost'}", sans-serif`;
   const serif = `"${headFam}", serif`;
+  const FR = buildFR(t, sans, serif);
   const amt = clamp((t.motion == null ? 7 : t.motion) / 100, 0, 0.4);
   const kIn = [1.03, 1.03 + amt];
   const kOut = [1.03 + amt, 1.03];
@@ -271,7 +273,7 @@ export function drawReel(ctx, time, cfg) {
             (t.kicker || '').toUpperCase(),
             cw / 2,
             top + (showL ? 208 : 0) + 30,
-            `700 54px ${sans}`,
+            `700 ${54 * FR.wordmark.s}px ${FR.wordmark.fam}`,
             pal.ink,
             5,
             'center',
@@ -285,8 +287,8 @@ export function drawReel(ctx, time, cfg) {
         h: 238,
         draw: (top) => {
           rule(cw / 2 - rw / 2, top + 8, rw, pal.accent, o * 0.7);
-          text(t.hook1, cw / 2, top + 82, `600 100px ${serif}`, pal.ink, null, 'center', o * l1, true);
-          text(t.hook2, cw / 2, top + 186, `italic 600 100px ${serif}`, pal.accent, null, 'center', o * l2, true);
+          text(t.hook1, cw / 2, top + 82, `600 ${100 * FR.headline.s}px ${FR.headline.fam}`, pal.ink, null, 'center', o * l1, true);
+          text(t.hook2, cw / 2, top + 186, `italic 600 ${100 * FR.headline.s}px ${FR.headline.fam}`, pal.accent, null, 'center', o * l2, true);
         },
       },
     ];
@@ -300,7 +302,7 @@ export function drawReel(ctx, time, cfg) {
             (t.themeName || '').toUpperCase(),
             cw / 2,
             top + 34,
-            `500 26px ${sans}`,
+            `500 ${26 * FR.caption.s}px ${FR.caption.fam}`,
             pal.accent,
             9,
             'center',
@@ -365,14 +367,14 @@ export function drawReel(ctx, time, cfg) {
       (label || '').toUpperCase(),
       ax,
       labelY,
-      `500 22px ${sans}`,
+      `500 ${22 * FR.label.s}px ${FR.label.fam}`,
       isAccent ? pal.accent : pal.muted || 'rgba(255,255,255,0.88)',
       10 + lsExtra,
       talign,
       o,
       true
     );
-    if (sub) text(sub, ax, subY, `italic 500 46px ${serif}`, pal.ink, null, talign, o, true);
+    if (sub) text(sub, ax, subY, `italic 500 ${46 * FR.subhead.s}px ${FR.subhead.fam}`, pal.ink, null, talign, o, true);
     ctx.filter = 'none';
     ctx.restore();
   };
@@ -403,7 +405,7 @@ export function drawReel(ctx, time, cfg) {
             (t.kicker || '').toUpperCase(),
             cw / 2,
             top + (showL ? 208 : 0) + 30,
-            `700 54px ${sans}`,
+            `700 ${54 * FR.wordmark.s}px ${FR.wordmark.fam}`,
             pal.ink,
             5,
             'center',
@@ -417,7 +419,7 @@ export function drawReel(ctx, time, cfg) {
         h: 80,
         draw: (top) => {
           rule(cw / 2 - rw / 2, top + 8, rw, pal.accent, o * 0.7);
-          text(t.endTagline, cw / 2, top + 52, `italic 500 46px ${serif}`, pal.ink, null, 'center', o * sub, true);
+          text(t.endTagline, cw / 2, top + 52, `italic 500 ${46 * FR.subhead.s}px ${FR.subhead.fam}`, pal.ink, null, 'center', o * sub, true);
         },
       },
     ];
@@ -431,7 +433,7 @@ export function drawReel(ctx, time, cfg) {
             (t.endUrl || '').toUpperCase(),
             cw / 2,
             top + 34,
-            `500 26px ${sans}`,
+            `500 ${26 * FR.caption.s}px ${FR.caption.fam}`,
             pal.accent,
             9,
             'center',

@@ -58,6 +58,7 @@ export const TWEAK_DEFAULTS = {
   showLogo: true,
   transition: 'dissolve',
   transLen: 1.6,
+  beforeHold: 5.8,
   montagePace: 1.9,
   motion: 6,
   hero: 'Map of Bhārat',
@@ -77,6 +78,16 @@ export const TWEAK_DEFAULTS = {
   endS1: 'Top',
   endS2: 'Middle',
   endS3: 'Bottom',
+  fontWordmark: 'Default',
+  sizeWordmark: 100,
+  fontHeadline: 'Default',
+  sizeHeadline: 100,
+  fontSubhead: 'Default',
+  sizeSubhead: 100,
+  fontLabel: 'Default',
+  sizeLabel: 145,
+  fontCaption: 'Default',
+  sizeCaption: 100,
 };
 
 export const TXT_SHADOW = '0 2px 16px rgba(0,0,0,0.75)';
@@ -87,23 +98,25 @@ export function timings(t, montageCount = 8) {
   const transLen = num(t.transLen, 1.6);
   const perLook = num(t.montagePace, 1.8);
   const lookDur = perLook + 0.7;
-  const mStart = 16.0;
+  const bStart = 3.7;
+  const transStart = bStart + num(t.beforeHold, 5.8);
+  const mStart = transStart + 6.5;
   const n = Math.max(0, montageCount);
   const mEnd = mStart + (n - 1) * perLook + lookDur;
   const endStart = mEnd - 0.2;
   const endLen = 4.2;
   return {
     title: [0, 4.3],
-    before: [3.7, 10.3],
-    bLabel: [4.7, 9.9],
-    trans: [9.5, 9.5 + transLen],
-    after: [9.8, 16.3],
-    aLabel: [10.8, 15.9],
+    before: [bStart, transStart + 1.1],
+    bLabel: [transStart - 4.8, transStart + 0.4],
+    trans: [transStart, transStart + transLen],
+    after: [transStart + 0.3, mStart + 0.7],
+    aLabel: [transStart + 1.3, mStart - 0.1],
     mStart,
     mStep: perLook,
     mDur: lookDur,
     n,
-    cLabel: [16.2, mEnd - 0.4],
+    cLabel: [mStart + 0.2, mEnd - 0.4],
     end: [endStart, endStart + endLen],
     DURATION: endStart + endLen,
   };
