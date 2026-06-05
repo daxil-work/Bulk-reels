@@ -1,5 +1,6 @@
 import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 import { loadImg, drawReel } from './drawReel.js';
+import { keyBlackToTransparent, isLogoSrc } from './logoUtils.js';
 
 function pickMime() {
   const cands = ['video/mp4;codecs=avc1.640028', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
@@ -11,13 +12,14 @@ function pickMime() {
   return 'video/webm';
 }
 
-export async function preloadAssets(headFam, srcs) {
+export async function preloadAssets(headFam, srcs, bodyFam = 'Jost') {
   try {
     await Promise.all([
       document.fonts.load(`600 104px "${headFam}"`),
       document.fonts.load(`italic 600 104px "${headFam}"`),
-      document.fonts.load('500 24px "Jost"'),
-      document.fonts.load('400 30px "Jost"'),
+      document.fonts.load(`700 66px "${bodyFam}"`),
+      document.fonts.load(`500 24px "${bodyFam}"`),
+      document.fonts.load(`400 30px "${bodyFam}"`),
     ]);
     await document.fonts.ready;
   } catch {}
@@ -34,8 +36,9 @@ export async function preloadAssets(headFam, srcs) {
       const c = document.createElement('canvas');
       c.width = w;
       c.height = h;
-      c.getContext('2d').drawImage(im, 0, 0, w, h);
-      imgs[s] = c;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(im, 0, 0, w, h);
+      imgs[s] = isLogoSrc(s) ? keyBlackToTransparent(c) : c;
     } catch {
       imgs[s] = null;
     }

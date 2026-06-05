@@ -146,7 +146,7 @@ export default function App() {
     const exportTweaks = themeForExport ? themeForExport.tweaks : t;
     const builtExport = idea.buildCfg({ t: exportTweaks, images: exportImages });
     const exportCfg = { ...builtExport.cfg };
-    exportCfg.imgs = await preloadAssets(builtExport.cfg.headFam, builtExport.srcs);
+    exportCfg.imgs = await preloadAssets(builtExport.cfg.headFam, builtExport.srcs, builtExport.cfg.bodyFam);
     let blob = null;
     let ext = 'mp4';
     if (window.VideoEncoder) {
@@ -254,9 +254,25 @@ export default function App() {
             ? `Bulk ${Math.round(rec.p * 100)}%`
             : 'Working…';
 
-  const downloadNote = built
-    ? `Exports a ${Math.round(TT.DURATION)}s · ${W}x${H} MP4.`
-    : '';
+  const downloadNote = rec.on
+    ? rec.mode === 'encode'
+      ? 'Rendering MP4 — faster than real time.'
+      : rec.mode === 'record'
+        ? 'Recording in real time — keep tab focused.'
+        : rec.mode === 'bulk'
+          ? `Bulk export: ${rec.label || 'working'}…`
+          : 'Loading photos…'
+    : rec.ext === 'mp4'
+      ? 'Saved as MP4 ✓'
+      : rec.ext === 'webm'
+        ? 'Saved as WEBM ✓'
+        : rec.ext === 'zip'
+          ? 'Bulk ZIP saved ✓'
+          : rec.ext === 'error'
+            ? 'Export failed — try Chrome or Edge.'
+            : built
+              ? `Exports a ${Math.round(TT.DURATION)}s · ${W}×${H} MP4.`
+              : '';
 
   const headerName = useThemeMode && selectedTheme
     ? selectedTheme.displayName

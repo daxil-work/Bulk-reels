@@ -4,9 +4,11 @@ import {
   TweakSection,
   TweakRadio,
   TweakColor,
+  TweakColorField,
   TweakSelect,
   TweakSlider,
   TweakText,
+  TweakToggle,
 } from '../components/TweaksPanel.jsx';
 import {
   DEFAULT_BEFORE_SRC,
@@ -14,8 +16,13 @@ import {
   RATIOS,
   PALETTES,
   TWEAK_DEFAULTS,
+  HEAD_FONTS,
+  BODY_FONTS,
+  LOGO_SRC,
+  LOGO_GLOW_SRC,
   timings,
 } from './config.js';
+import { buildPaletteFromTweaks } from './paletteUtils.js';
 import {
   Atmosphere,
   FullShot,
@@ -41,15 +48,16 @@ function resolveLooks(images) {
 }
 
 function buildPalette(t) {
-  const base = PALETTES[t.palette] || PALETTES.brand;
-  return { ...base, accent: t.accent || base.accent };
+  return buildPaletteFromTweaks(t, PALETTES);
 }
 
 function buildFonts(t) {
-  const headFam = t.headlineFont === 'Jost' ? 'Jost' : 'Cormorant Garamond';
+  const headFam = HEAD_FONTS.includes(t.headlineFont) ? t.headlineFont : 'Cormorant Garamond';
+  const bodyFam = BODY_FONTS.includes(t.bodyFont) ? t.bodyFont : 'Jost';
   return {
     headFam,
-    fonts: { serif: `'${headFam}', serif`, sans: "'Jost', sans-serif" },
+    bodyFam,
+    fonts: { serif: `'${headFam}', serif`, sans: `'${bodyFam}', sans-serif` },
   };
 }
 
@@ -79,11 +87,14 @@ function Preview({ t, images }) {
   const dims = RATIOS[t.ratio] || RATIOS['9:16'];
   const RW = dims[0];
   const RH = dims[1];
+  const imageAnim = t.imageAnim || 'Ken Burns';
+  const labelAnim = t.labelAnim || 'Rise';
+  const labelPos = t.labelPos || 'Bottom left';
 
   return (
     <Stage width={RW} height={RH} duration={TT.DURATION} background={pal.bg} persistKey="reel-v3">
       <ScreenLabeler />
-      <Atmosphere pal={pal} />
+      <Atmosphere pal={pal} TT={TT} />
 
       <Sprite start={TT.title[0]} end={TT.title[1]}>
         <TitleCard pal={pal} fonts={fonts} t={t} />
@@ -96,10 +107,22 @@ function Preview({ t, images }) {
           kbFrom={kbIn[0]}
           kbTo={kbIn[1]}
           posY="22%"
+          anim={imageAnim}
+          z={2}
+          fadeIn={0.6}
+          fadeOut={0}
         />
       </Sprite>
       <Sprite start={TT.bLabel[0]} end={TT.bLabel[1]}>
-        <ShotLabel label={t.beforeLabel} sub={t.beforeSub} pal={pal} fonts={fonts} accent={false} />
+        <ShotLabel
+          label={t.beforeLabel}
+          sub={t.beforeSub}
+          pal={pal}
+          fonts={fonts}
+          accent={false}
+          anim={labelAnim}
+          pos={labelPos}
+        />
       </Sprite>
 
       <Sprite start={TT.trans[0]} end={TT.trans[1]}>
@@ -107,10 +130,27 @@ function Preview({ t, images }) {
       </Sprite>
 
       <Sprite start={TT.after[0]} end={TT.after[1]}>
-        <FullShot src={hero.src} kbFrom={kbOut[0]} kbTo={kbOut[1]} posY="24%" />
+        <FullShot
+          src={hero.src}
+          kbFrom={kbOut[0]}
+          kbTo={kbOut[1]}
+          posY="24%"
+          anim={imageAnim}
+          z={3}
+          fadeIn={0.6}
+          fadeOut={0}
+        />
       </Sprite>
       <Sprite start={TT.aLabel[0]} end={TT.aLabel[1]}>
-        <ShotLabel label={t.afterLabel} sub={hero.n} pal={pal} fonts={fonts} accent />
+        <ShotLabel
+          label={t.afterLabel}
+          sub={hero.n}
+          pal={pal}
+          fonts={fonts}
+          accent
+          anim={labelAnim}
+          pos={labelPos}
+        />
       </Sprite>
 
       {montage.map((l, i) => (
@@ -120,12 +160,21 @@ function Preview({ t, images }) {
             kbFrom={(i % 2 ? kbOut : kbIn)[0]}
             kbTo={(i % 2 ? kbOut : kbIn)[1]}
             posY="22%"
-            z={2 + (i % 2)}
+            z={4 + i}
+            anim={imageAnim}
+            fadeIn={0.6}
+            fadeOut={i === montage.length - 1 ? 0.7 : 0}
           />
         </Sprite>
       ))}
       <Sprite start={TT.cLabel[0]} end={TT.cLabel[1]}>
-        <CollectionLabel pal={pal} fonts={fonts} count={looks.length} />
+        <CollectionLabel
+          pal={pal}
+          fonts={fonts}
+          count={looks.length}
+          anim={labelAnim}
+          pos={labelPos}
+        />
       </Sprite>
 
       <Sprite start={TT.end[0]} end={TT.end[1]}>
@@ -154,12 +203,28 @@ function SettingsControls({ t, setTweak, lookNames }) {
         options={['#b4d8ff', '#0047cc', '#002b4d', '#ffffff', '#e0bd6e']}
         onChange={(v) => setTweak('accent', v)}
       />
-      <TweakRadio
+      <TweakColorField label="Accent (custom)" value={t.accent} onChange={(v) => setTweak('accent', v)} />
+      <TweakColor
+        label="Background"
+        value={t.bgColor || '#002b4d'}
+        options={['#002b4d', '#0047cc', '#001226', '#0c0a10', '#1a070c']}
+        onChange={(v) => setTweak('bgColor', v)}
+      />
+      <TweakColorField label="Background (custom)" value={t.bgColor || '#002b4d'} onChange={(v) => setTweak('bgColor', v)} />
+      <TweakColor
+        label="Text color"
+        value={t.textColor || '#ffffff'}
+        options={['#ffffff', '#b4d8ff', '#002b4d', '#13243a', '#e0bd6e']}
+        onChange={(v) => setTweak('textColor', v)}
+      />
+      <TweakColorField label="Text color (custom)" value={t.textColor || '#ffffff'} onChange={(v) => setTweak('textColor', v)} />
+      <TweakSelect
         label="Headline font"
         value={t.headlineFont}
-        options={['Cormorant Garamond', 'Jost']}
+        options={HEAD_FONTS}
         onChange={(v) => setTweak('headlineFont', v)}
       />
+      <TweakSelect label="Body font" value={t.bodyFont} options={BODY_FONTS} onChange={(v) => setTweak('bodyFont', v)} />
 
       <TweakSection label="Pacing & transition" />
       <TweakSelect
@@ -195,18 +260,37 @@ function SettingsControls({ t, setTweak, lookNames }) {
         unit="%"
         onChange={(v) => setTweak('motion', v)}
       />
+      <TweakSelect label="Featured 'After' look" value={t.hero} options={lookNames} onChange={(v) => setTweak('hero', v)} />
+
+      <TweakSection label="Entrance animations" />
       <TweakSelect
-        label="Featured 'After' look"
-        value={t.hero}
-        options={lookNames}
-        onChange={(v) => setTweak('hero', v)}
+        label="Image transition"
+        value={t.imageAnim}
+        options={['Ken Burns', 'Zoom in', 'Zoom out', 'Fade', 'Slide left', 'Slide right', 'Slide up', 'Slide down', 'Blur in', 'Pan up', 'Spin in', 'Zoom blur']}
+        onChange={(v) => setTweak('imageAnim', v)}
+      />
+      <TweakSelect
+        label="Label transition"
+        value={t.labelAnim}
+        options={['Rise', 'Fade', 'Slide', 'Drop', 'Pop', 'Blur', 'Expand', 'Bounce', 'Flip', 'Wipe']}
+        onChange={(v) => setTweak('labelAnim', v)}
+      />
+      <TweakSelect
+        label="Label position"
+        value={t.labelPos}
+        options={['Bottom left', 'Bottom center', 'Bottom right', 'Top left', 'Top center', 'Center']}
+        onChange={(v) => setTweak('labelPos', v)}
       />
 
       <TweakSection label="Opening" />
-      <TweakText label="Kicker" value={t.kicker} onChange={(v) => setTweak('kicker', v)} />
+      <TweakToggle label="Show logo" value={t.showLogo !== false} onChange={(v) => setTweak('showLogo', v)} />
+      <TweakText label="Wordmark" value={t.kicker} onChange={(v) => setTweak('kicker', v)} />
       <TweakText label="Hook line 1" value={t.hook1} onChange={(v) => setTweak('hook1', v)} />
       <TweakText label="Hook line 2" value={t.hook2} onChange={(v) => setTweak('hook2', v)} />
       <TweakText label="Theme name (bottom)" value={t.themeName} onChange={(v) => setTweak('themeName', v)} />
+      <TweakSelect label="1 · Logo + wordmark" value={t.titleS1 || 'Middle'} options={['Top', 'Middle', 'Bottom']} onChange={(v) => setTweak('titleS1', v)} />
+      <TweakSelect label="2 · Headline" value={t.titleS2 || 'Middle'} options={['Top', 'Middle', 'Bottom']} onChange={(v) => setTweak('titleS2', v)} />
+      <TweakSelect label="3 · Theme name" value={t.titleS3 || 'Bottom'} options={['Top', 'Middle', 'Bottom']} onChange={(v) => setTweak('titleS3', v)} />
 
       <TweakSection label="Before / After" />
       <TweakText label="Before label" value={t.beforeLabel} onChange={(v) => setTweak('beforeLabel', v)} />
@@ -214,16 +298,18 @@ function SettingsControls({ t, setTweak, lookNames }) {
       <TweakText label="After label" value={t.afterLabel} onChange={(v) => setTweak('afterLabel', v)} />
 
       <TweakSection label="End card" />
-      <TweakText label="Title" value={t.endTitle} onChange={(v) => setTweak('endTitle', v)} />
-      <TweakText label="Tagline" value={t.endTagline} onChange={(v) => setTweak('endTagline', v)} />
+      <TweakText label="Headline" value={t.endTagline} onChange={(v) => setTweak('endTagline', v)} />
       <TweakText label="URL" value={t.endUrl} onChange={(v) => setTweak('endUrl', v)} />
+      <TweakSelect label="1 · Logo + wordmark" value={t.endS1 || 'Middle'} options={['Top', 'Middle', 'Bottom']} onChange={(v) => setTweak('endS1', v)} />
+      <TweakSelect label="2 · Headline" value={t.endS2 || 'Middle'} options={['Top', 'Middle', 'Bottom']} onChange={(v) => setTweak('endS2', v)} />
+      <TweakSelect label="3 · URL" value={t.endS3 || 'Bottom'} options={['Top', 'Middle', 'Bottom']} onChange={(v) => setTweak('endS3', v)} />
     </>
   );
 }
 
 function buildCfg({ t, images }) {
   const pal = buildPalette(t);
-  const { headFam } = buildFonts(t);
+  const { headFam, bodyFam } = buildFonts(t);
   const looks = resolveLooks(images);
   const hero = looks.find((l) => l.n === t.hero) || looks[looks.length - 1];
   const montage = looks.filter((l) => l.n !== hero.n);
@@ -232,10 +318,10 @@ function buildCfg({ t, images }) {
   const W = dims[0];
   const H = dims[1];
   const beforeSrc = images.before;
-  const srcs = [beforeSrc, ...looks.map((l) => l.src)].filter(Boolean);
+  const srcs = [LOGO_SRC, LOGO_GLOW_SRC, beforeSrc, ...looks.map((l) => l.src)].filter(Boolean);
 
   return {
-    cfg: { pal, hero, montage, t, headFam, TT, W, H, beforeSrc, lookCount: looks.length },
+    cfg: { pal, hero, montage, t, headFam, bodyFam, TT, W, H, beforeSrc, lookCount: looks.length },
     W,
     H,
     TT,

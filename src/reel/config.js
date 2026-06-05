@@ -4,6 +4,20 @@ export const DEFAULT_BEFORE_SRC = '/assets/before.png';
 /** @deprecated use DEFAULT_BEFORE_SRC */
 export const BEFORE_SRC = DEFAULT_BEFORE_SRC;
 
+export const LOGO_SRC = '/uploads/trasprent%20logo.jpeg';
+export const LOGO_GLOW_SRC = '/uploads/trasprent%20logo.jpeg';
+
+export const HEAD_FONTS = [
+  'Cormorant Garamond',
+  'Playfair Display',
+  'DM Serif Display',
+  'Lora',
+  'Marcellus',
+  'Jost',
+];
+
+export const BODY_FONTS = ['Jost', 'Poppins', 'Montserrat'];
+
 export const LOOKS = [
   { n: 'Lotus Pond', src: '/uploads/8.png' },
   { n: 'Kathakali Crown', src: '/uploads/5.png' },
@@ -31,25 +45,38 @@ export const PALETTES = {
 };
 
 export const TWEAK_DEFAULTS = {
-  ratio: '16:9',
+  ratio: '9:16',
   palette: 'brand',
-  accent: '#b4d8ff',
-  headlineFont: 'Cormorant Garamond',
-  transition: 'shimmer',
+  accent: '#002b4d',
+  textColor: '',
+  headlineFont: 'Lora',
+  bodyFont: 'Montserrat',
+  bgColor: '',
+  imageAnim: 'Slide up',
+  labelAnim: 'Wipe',
+  labelPos: 'Bottom right',
+  showLogo: true,
+  transition: 'dissolve',
   transLen: 1.6,
   montagePace: 1.9,
   motion: 6,
   hero: 'Map of Bhārat',
-  kicker: 'Rarest Prompt',
+  kicker: 'RarestPrompt',
   hook1: 'One photo.',
   hook2: 'Endless tradition.',
   themeName: 'Traditional Indian Theme',
+  titleS1: 'Top',
+  titleS2: 'Middle',
+  titleS3: 'Bottom',
   beforeLabel: 'Before',
   beforeSub: 'the everyday original',
   afterLabel: 'After',
   endTitle: 'Rarest Prompt',
   endTagline: 'Upgrade your photoshoots in seconds',
   endUrl: 'rarestprompt.com',
+  endS1: 'Top',
+  endS2: 'Middle',
+  endS3: 'Bottom',
 };
 
 export const TXT_SHADOW = '0 2px 16px rgba(0,0,0,0.75)';

@@ -1,4 +1,3 @@
-import React from 'react';
 
 /* BEGIN USAGE */
 // tweaks-panel.jsx
@@ -165,93 +164,26 @@ const __TWEAKS_STYLE = `
   .twk-chip>span>i:first-child{box-shadow:none}
   .twk-chip svg{position:absolute;top:6px;left:6px;width:13px;height:13px;
     filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
-  .twk-docked{padding:0;overflow:visible;color:#29261b;display:flex;flex-direction:column;gap:18px}
-  .twk-docked .twk-sect{color:rgba(41,38,27,.5);padding-top:8px;margin-top:4px;font-size:10px;letter-spacing:.08em}
-  .twk-docked .twk-sect:first-child{padding-top:0;margin-top:0}
-  .twk-docked .twk-row{gap:8px}
-  .twk-docked .twk-lbl{color:rgba(41,38,27,.82);font-size:12px;margin-bottom:2px}
-  .twk-docked .twk-val{color:rgba(41,38,27,.5);font-size:11px}
-  .twk-docked .twk-field{background:#fff;border-color:rgba(0,0,0,.1);height:34px;font-size:12px;padding:0 10px;border-radius:8px}
-  .twk-docked .twk-field:focus{background:#fff;border-color:rgba(0,0,0,.22);box-shadow:0 0 0 3px rgba(0,0,0,.06)}
-  .twk-docked .twk-slider{margin:10px 0 12px;height:5px}
-  .twk-docked .twk-seg{background:rgba(0,0,0,.07);padding:3px;border-radius:9px}
-  .twk-docked .twk-seg button{font-size:11px;padding:6px 10px;min-height:28px}
-  .twk-docked .twk-chips{flex-wrap:wrap;gap:8px}
-  .twk-docked .twk-chip{height:44px;min-width:48px;flex:0 1 auto}
-  .twk-docked .twk-num{height:34px;border-radius:8px}
 `;
 
-const TWEAKS_STORAGE_PREFIX = 'reel-tweaks';
-
-function storageKeyFor(ideaId) {
-  return ideaId ? `${TWEAKS_STORAGE_PREFIX}:${ideaId}` : TWEAKS_STORAGE_PREFIX;
-}
-
-function loadStoredTweaks(defaults, ideaId) {
-  const storageKey = storageKeyFor(ideaId);
-  try {
-    const raw = localStorage.getItem(storageKey);
-    if (!raw) return defaults;
-    const parsed = JSON.parse(raw);
-    return { ...defaults, ...parsed };
-  } catch {
-    return defaults;
-  }
-}
-
-function persistTweaks(edits, ideaId) {
-  const storageKey = storageKeyFor(ideaId);
-  try {
-    const raw = localStorage.getItem(storageKey);
-    const prev = raw ? JSON.parse(raw) : {};
-    localStorage.setItem(storageKey, JSON.stringify({ ...prev, ...edits }));
-  } catch {}
-}
-
-function postToHost(message) {
-  try {
-    if (window.parent && window.parent !== window) {
-      window.parent.postMessage(message, '*');
-    }
-  } catch {}
-}
-
 // ── useTweaks ───────────────────────────────────────────────────────────────
-// Single source of truth for tweak values. Persists to localStorage for
-// standalone use; still posts to host when embedded in an editor iframe.
-function useTweaks(defaults, ideaId) {
-  const [values, setValues] = React.useState(() => loadStoredTweaks(defaults, ideaId));
-
-  React.useEffect(() => {
-    setValues(loadStoredTweaks(defaults, ideaId));
-  }, [ideaId]);
-
+// Single source of truth for tweak values. setTweak persists via the host
+// (__edit_mode_set_keys → host rewrites the EDITMODE block on disk).
+function useTweaks(defaults) {
+  const [values, setValues] = React.useState(defaults);
+  // Accepts either setTweak('key', value) or setTweak({ key: value, ... }) so a
+  // useState-style call doesn't write a "[object Object]" key into the persisted
+  // JSON block.
   const setTweak = React.useCallback((keyOrEdits, val) => {
     const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null
-      ? keyOrEdits
-      : { [keyOrEdits]: val };
+      ? keyOrEdits : { [keyOrEdits]: val };
     setValues((prev) => ({ ...prev, ...edits }));
-    persistTweaks(edits, ideaId);
-    postToHost({ type: '__edit_mode_set_keys', edits });
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+    // Same-window signal so in-page listeners (deck-stage rail thumbnails)
+    // can react — the parent message only reaches the host, not peers.
     window.dispatchEvent(new CustomEvent('tweakchange', { detail: edits }));
-  }, [ideaId]);
-  const resetTweaks = React.useCallback(() => {
-    try {
-      localStorage.removeItem(storageKeyFor(ideaId));
-    } catch {}
-    setValues({ ...defaults });
-  }, [ideaId, defaults]);
-
-  return [values, setTweak, resetTweaks];
-}
-
-function DockedTweaksBody({ children }) {
-  return (
-    <>
-      <style>{__TWEAKS_STYLE}</style>
-      <div className="twk-body twk-docked">{children}</div>
-    </>
-  );
+  }, []);
+  return [values, setTweak];
 }
 
 // ── TweaksPanel ─────────────────────────────────────────────────────────────
@@ -300,13 +232,13 @@ function TweaksPanel({ title = 'Tweaks', children }) {
       else if (t === '__deactivate_edit_mode') setOpen(false);
     };
     window.addEventListener('message', onMsg);
-    postToHost({ type: '__edit_mode_available' });
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
     return () => window.removeEventListener('message', onMsg);
   }, []);
 
   const dismiss = () => {
     setOpen(false);
-    postToHost({ type: '__edit_mode_dismissed' });
+    window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
   };
 
   const onDragStart = (e) => {
@@ -331,32 +263,7 @@ function TweaksPanel({ title = 'Tweaks', children }) {
     window.addEventListener('mouseup', up);
   };
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        aria-label="Open tweaks"
-        onClick={() => setOpen(true)}
-        className="fixed right-4 bottom-4 z-[2147483646] inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white/90 shadow-lg backdrop-blur-md transition hover:bg-white/20 hover:text-white"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-          />
-          <path
-            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
-    );
-  }
-
+  if (!open) return null;
   return (
     <>
       <style>{__TWEAKS_STYLE}</style>
@@ -626,33 +533,8 @@ function TweakButton({ label, onClick, secondary = false }) {
   );
 }
 
-function TweakColorField({ label, value, onChange }) {
-  return (
-    <TweakRow label={label} value={value}>
-      <input
-        type="color"
-        className="twk-swatch"
-        style={{ width: '100%', height: 30 }}
-        value={value || '#002b4d'}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </TweakRow>
-  );
-}
-
-export {
-  useTweaks,
-  TweaksPanel,
-  DockedTweaksBody,
-  TweakSection,
-  TweakRow,
-  TweakSlider,
-  TweakToggle,
-  TweakRadio,
-  TweakSelect,
-  TweakText,
-  TweakNumber,
-  TweakColor,
-  TweakColorField,
-  TweakButton,
-};
+Object.assign(window, {
+  useTweaks, TweaksPanel, TweakSection, TweakRow,
+  TweakSlider, TweakToggle, TweakRadio, TweakSelect,
+  TweakText, TweakNumber, TweakColor, TweakButton,
+});
