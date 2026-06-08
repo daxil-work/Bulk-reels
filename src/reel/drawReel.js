@@ -1,5 +1,5 @@
 import { Easing } from '../engine/animations.jsx';
-import { lerp, fadeIO, clamp, LOGO_GLOW_SRC } from './config.js';
+import { lerp, fadeIO, clamp, LOGO_GLOW_SRC, collectionSubtext } from './config.js';
 import { buildFR } from './fontUtils.js';
 
 const _imgCache = {};
@@ -60,6 +60,43 @@ function drawGlowLogo(ctx, cx, cy, size, alpha, imgs) {
   }
   ctx.drawImage(img, cx - dw / 2, cy - dh / 2, dw, dh);
   ctx.restore();
+}
+
+function wrapTextLines(ctx, str, maxWidth) {
+  const words = String(str || '').split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  const lines = [words[0]];
+  for (let i = 1; i < words.length; i++) {
+    const next = `${lines[lines.length - 1]} ${words[i]}`;
+    if (ctx.measureText(next).width > maxWidth) lines.push(words[i]);
+    else lines[lines.length - 1] = next;
+  }
+  return lines;
+}
+
+function drawWrappedText(ctx, str, x, y, font, color, align, alpha, shadow, maxWidth, lineHeight) {
+  if (!str) return 0;
+  ctx.save();
+  ctx.font = font;
+  ctx.fillStyle = color;
+  ctx.textAlign = align || 'left';
+  ctx.textBaseline = 'middle';
+  ctx.globalAlpha = alpha == null ? 1 : alpha;
+  if (shadow) {
+    ctx.shadowColor = 'rgba(0,0,0,0.72)';
+    ctx.shadowBlur = 24;
+    ctx.shadowOffsetY = 2;
+  }
+  const lines = wrapTextLines(ctx, str, maxWidth);
+  const lh = lineHeight || 50;
+  const blockH = lines.length * lh;
+  let ly = y - (blockH - lh) / 2;
+  for (const line of lines) {
+    ctx.fillText(line, x, ly);
+    ly += lh;
+  }
+  ctx.restore();
+  return lines.length;
 }
 
 export function drawReel(ctx, time, cfg) {
@@ -351,6 +388,14 @@ export function drawReel(ctx, time, cfg) {
     const ruleY = subY - 104;
     const rwid = 60 * line;
     const ruleX = talign === 'left' ? ax : talign === 'center' ? ax - rwid / 2 : ax - rwid;
+    const subFont = `italic 500 ${46 * FR.subhead.s}px ${FR.subhead.fam}`;
+    const subMaxW = cw - 140;
+    const subLH = 46 * FR.subhead.s * 1.1;
+    let subLineCount = 1;
+    if (sub) {
+      ctx.font = subFont;
+      subLineCount = Math.max(1, wrapTextLines(ctx, sub, subMaxW).length);
+    }
     ctx.save();
     ctx.translate(ax + tx, subY + ty);
     ctx.scale(scale, scale * scaleY);
@@ -358,8 +403,9 @@ export function drawReel(ctx, time, cfg) {
     if (blur > 0.1) ctx.filter = `blur(${blur}px)`;
     if (wipe) {
       const wx = talign === 'left' ? ax - 12 : talign === 'center' ? ax - 290 : ax - 560;
+      const extraH = sub ? (subLineCount - 1) * subLH : 0;
       ctx.beginPath();
-      ctx.rect(wx, ruleY - 24, 580 * enter, subY - ruleY + 90);
+      ctx.rect(wx, ruleY - 24, 580 * enter, subY - ruleY + 90 + extraH);
       ctx.clip();
     }
     rule(ruleX, ruleY, rwid, pal.accent, o);
@@ -374,17 +420,21 @@ export function drawReel(ctx, time, cfg) {
       o,
       true
     );
-    if (sub) text(sub, ax, subY, `italic 500 ${46 * FR.subhead.s}px ${FR.subhead.fam}`, pal.ink, null, talign, o, true);
+    if (sub) {
+      drawWrappedText(ctx, sub, ax, subY, subFont, pal.ink, talign, o, true, subMaxW, subLH);
+    }
     ctx.filter = 'none';
     ctx.restore();
   };
 
   drawLabel(TT.bLabel, t.beforeLabel, t.beforeSub, false);
-  drawLabel(TT.aLabel, t.afterLabel, hero.n, true);
-
   const count = cfg.lookCount ?? montage.length + 1;
-  const collLabel = count === 1 ? 'One traditional look' : `${count} traditional looks`;
-  drawLabel(TT.cLabel, 'The Collection', collLabel, true);
+  const collLabel = collectionSubtext(count, t.themeName);
+  drawLabel([TT.after[0] + 0.25, TT.after[1] - 0.35], 'The Collection', collLabel, true);
+  montage.forEach((l, i) => {
+    const shotStart = TT.mStart + i * TT.mStep;
+    drawLabel([shotStart + 0.25, shotStart + TT.mDur - 0.35], 'The Collection', collLabel, true);
+  });
 
   if (time >= TT.end[0] && time <= TT.end[1]) {
     const lt = time - TT.end[0];
@@ -395,6 +445,12 @@ export function drawReel(ctx, time, cfg) {
     const sub = Easing.easeOutCubic(clamp((lt - 0.7) / 1.0, 0, 1));
     const tn = Easing.easeOutCubic(clamp((lt - 1.0) / 0.9, 0, 1));
     const showL = t.showLogo !== false;
+    const tagFont = `italic 500 ${46 * FR.subhead.s}px ${FR.subhead.fam}`;
+    const tagMaxW = Math.min(760, cw - 120);
+    const tagLH = 46 * FR.subhead.s * 1.1;
+    ctx.font = tagFont;
+    const tagLineCount = Math.max(1, wrapTextLines(ctx, t.endTagline || '', tagMaxW).length);
+    const tagBlockH = tagLineCount * tagLH + 36;
     const sections = [
       {
         slot: t.endS1 || 'Middle',
@@ -416,10 +472,22 @@ export function drawReel(ctx, time, cfg) {
       },
       {
         slot: t.endS2 || 'Middle',
-        h: 80,
+        h: tagBlockH,
         draw: (top) => {
           rule(cw / 2 - rw / 2, top + 8, rw, pal.accent, o * 0.7);
-          text(t.endTagline, cw / 2, top + 52, `italic 500 ${46 * FR.subhead.s}px ${FR.subhead.fam}`, pal.ink, null, 'center', o * sub, true);
+          drawWrappedText(
+            ctx,
+            t.endTagline,
+            cw / 2,
+            top + 26 + (tagLineCount * tagLH) / 2,
+            tagFont,
+            pal.ink,
+            'center',
+            o * sub,
+            true,
+            tagMaxW,
+            tagLH
+          );
         },
       },
     ];

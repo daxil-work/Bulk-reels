@@ -143,41 +143,49 @@ function Preview({ t, images }) {
           fadeOut={0}
         />
       </Sprite>
-      <Sprite start={TT.aLabel[0]} end={TT.aLabel[1]}>
-        <ShotLabel
-          label={t.afterLabel}
-          sub={hero.n}
+      <Sprite start={TT.after[0] + 0.25} end={TT.after[1] - 0.35}>
+        <CollectionLabel
           pal={pal}
           fonts={fonts}
-          accent
+          count={looks.length}
+          themeName={t.themeName}
           anim={labelAnim}
           pos={labelPos}
         />
       </Sprite>
 
-      {montage.map((l, i) => (
-        <Sprite key={l.n} start={TT.mStart + i * TT.mStep} end={TT.mStart + i * TT.mStep + TT.mDur}>
-          <FullShot
-            src={l.src}
-            kbFrom={(i % 2 ? kbOut : kbIn)[0]}
-            kbTo={(i % 2 ? kbOut : kbIn)[1]}
-            posY="22%"
-            z={4 + i}
-            anim={imageAnim}
-            fadeIn={0.6}
-            fadeOut={i === montage.length - 1 ? 0.7 : 0}
-          />
-        </Sprite>
-      ))}
-      <Sprite start={TT.cLabel[0]} end={TT.cLabel[1]}>
-        <CollectionLabel
-          pal={pal}
-          fonts={fonts}
-          count={looks.length}
-          anim={labelAnim}
-          pos={labelPos}
-        />
-      </Sprite>
+      {montage.map((l, i) => {
+        const shotStart = TT.mStart + i * TT.mStep;
+        const shotEnd = shotStart + TT.mDur;
+        const labelStart = shotStart + 0.25;
+        const labelEnd = shotEnd - 0.35;
+        return (
+          <React.Fragment key={l.n}>
+            <Sprite start={shotStart} end={shotEnd}>
+              <FullShot
+                src={l.src}
+                kbFrom={(i % 2 ? kbOut : kbIn)[0]}
+                kbTo={(i % 2 ? kbOut : kbIn)[1]}
+                posY="22%"
+                z={4 + i}
+                anim={imageAnim}
+                fadeIn={0.6}
+                fadeOut={i === montage.length - 1 ? 0.7 : 0}
+              />
+            </Sprite>
+            <Sprite start={labelStart} end={labelEnd}>
+              <CollectionLabel
+                pal={pal}
+                fonts={fonts}
+                count={looks.length}
+                themeName={t.themeName}
+                anim={labelAnim}
+                pos={labelPos}
+              />
+            </Sprite>
+          </React.Fragment>
+        );
+      })}
 
       <Sprite start={TT.end[0]} end={TT.end[1]}>
         <EndCard pal={pal} fonts={fonts} t={t} />
@@ -186,7 +194,7 @@ function Preview({ t, images }) {
   );
 }
 
-function SettingsControls({ t, setTweak, lookNames }) {
+function SettingsControls({ t, setTweak }) {
   return (
     <>
       <TweakSection label="Format" />
@@ -308,7 +316,6 @@ function SettingsControls({ t, setTweak, lookNames }) {
         unit="%"
         onChange={(v) => setTweak('motion', v)}
       />
-      <TweakSelect label="Featured 'After' look" value={t.hero} options={lookNames} onChange={(v) => setTweak('hero', v)} />
 
       <TweakSection label="Entrance animations" />
       <TweakSelect

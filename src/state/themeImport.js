@@ -4,7 +4,7 @@ import {
   folderNameToDisplayName,
   slugify,
   uniqueThemeId,
-  defaultTweaksForTheme,
+  tweaksForImportedTheme,
 } from './themes.js';
 
 const IMAGE_EXT = /\.(jpe?g|png|webp|gif|bmp|avif)$/i;
@@ -31,7 +31,7 @@ function lookLabelFromFile(path) {
  * Parse FileList from webkitdirectory input.
  * Expected: themes/<themeName>/random/ref/* (before) and themes/<themeName>/random/wr/* (after)
  */
-export async function parseThemeFolderFiles(fileList) {
+export async function parseThemeFolderFiles(fileList, tweakTemplate = null) {
   const files = Array.from(fileList).filter((f) => isImageFile(f.name));
   const buckets = new Map();
 
@@ -105,7 +105,7 @@ export async function parseThemeFolderFiles(fileList) {
         displayName,
         beforeSrc,
         looks,
-        tweaks: defaultTweaksForTheme(displayName, lookNames),
+        tweaks: tweaksForImportedTheme(tweakTemplate, displayName, lookNames),
       })
     );
   }

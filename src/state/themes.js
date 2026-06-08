@@ -1,4 +1,5 @@
 import { TWEAK_DEFAULTS } from '../reel/config.js';
+import { mergeImportedTweaks } from './tweakPack.js';
 
 /** Title-case each word: "dark wedding look" → "Dark Wedding Look" */
 export function folderNameToDisplayName(folderName) {
@@ -35,6 +36,20 @@ export function defaultTweaksForTheme(displayName, lookNames = []) {
     themeName: displayName,
     hero,
   };
+}
+
+/** Apply a tweak template to a newly imported theme (per-theme name + hero). */
+export function tweaksForImportedTheme(template, displayName, lookNames = []) {
+  const defaults = defaultTweaksForTheme(displayName, lookNames);
+  if (!template) return defaults;
+  const hero = template.hero && lookNames.includes(template.hero)
+    ? template.hero
+    : defaults.hero;
+  return mergeImportedTweaks(defaults, {
+    ...template,
+    themeName: displayName,
+    hero,
+  });
 }
 
 export function createTheme({ folderName, displayName, beforeSrc, looks, tweaks, id }) {

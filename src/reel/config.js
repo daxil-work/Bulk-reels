@@ -126,6 +126,12 @@ export const lerp = (a, b, t) => a + (b - a) * t;
 
 export const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
+export function collectionSubtext(count, themeName) {
+  const theme = (themeName || 'themed').trim();
+  if (count === 1) return `One ${theme} look`;
+  return `${count} ${theme} looks`;
+}
+
 export function fadeIO(lt, dur, ins = 0.7, outs = 0.7) {
   let o = 1;
   if (lt < ins) o = clamp(lt / ins, 0, 1);

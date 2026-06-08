@@ -12,7 +12,7 @@ async function exportOneTheme(theme, idea, onProgress) {
   const built = idea.buildCfg({ t: theme.tweaks, images });
   const { cfg, srcs } = built;
   const exportCfg = { ...cfg };
-  exportCfg.imgs = await preloadAssets(cfg.headFam, srcs, cfg.bodyFam);
+  exportCfg.imgs = await preloadAssets(cfg.headFam, srcs, cfg.bodyFam, cfg.t);
 
   let blob = null;
   let ext = 'mp4';

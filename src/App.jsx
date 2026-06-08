@@ -14,6 +14,7 @@ import { loadSelectedIdea, saveSelectedIdea } from './state/storage.js';
 import { preloadAssets, encodeMP4, recordRealtime, downloadBlob } from './reel/export.js';
 import { exportThemesZip, downloadZipBlob } from './reel/bulkExport.js';
 import { sanitizeFilename } from './state/themes.js';
+import { downloadTweaksJson, mergeImportedTweaks, readTweakPackFile } from './state/tweakPack.js';
 
 export default function App() {
   const [selectedIdeaId, setSelectedIdeaId] = useState(() => loadSelectedIdea(IDEAS[0].id));
@@ -33,6 +34,7 @@ export default function App() {
     importWarnings,
     setThemeTweak,
     resetThemeTweaks,
+    applyTweaksToAllThemes,
     setThemeImage,
     deleteThemeLook,
     importFolder,
@@ -146,7 +148,12 @@ export default function App() {
     const exportTweaks = themeForExport ? themeForExport.tweaks : t;
     const builtExport = idea.buildCfg({ t: exportTweaks, images: exportImages });
     const exportCfg = { ...builtExport.cfg };
-    exportCfg.imgs = await preloadAssets(builtExport.cfg.headFam, builtExport.srcs, builtExport.cfg.bodyFam);
+    exportCfg.imgs = await preloadAssets(
+      builtExport.cfg.headFam,
+      builtExport.srcs,
+      builtExport.cfg.bodyFam,
+      exportCfg.t
+    );
     let blob = null;
     let ext = 'mp4';
     if (window.VideoEncoder) {
@@ -220,8 +227,31 @@ export default function App() {
     }
   };
 
+  const tweakExportLabel = useThemeMode
+    ? selectedTheme.displayName
+    : idea.name;
+
+  const onExportTweaks = () => {
+    if (!t) return;
+    downloadTweaksJson(t, tweakExportLabel);
+  };
+
+  const onImportTweaks = async (file) => {
+    try {
+      const { tweaks: imported } = await readTweakPackFile(file);
+      if (useThemeMode) {
+        applyTweaksToAllThemes(imported);
+      } else {
+        const merged = mergeImportedTweaks(idea.defaults, imported);
+        setTweak(merged);
+      }
+    } catch (e) {
+      window.alert(e.message || 'Could not import tweaks file');
+    }
+  };
+
   const onImportFolder = async (files) => {
-    const { count, warnings } = await importFolder(files);
+    const { count, warnings } = await importFolder(files, t);
     if (count > 0) closeDrawers();
     if (warnings?.length && count === 0) {
       window.alert(warnings.join('\n'));
@@ -271,7 +301,7 @@ export default function App() {
           : rec.ext === 'error'
             ? 'Export failed — try Chrome or Edge.'
             : built
-              ? `Exports a ${Math.round(TT.DURATION)}s · ${W}×${H} MP4.`
+              ? ``
               : '';
 
   const headerName = useThemeMode && selectedTheme
@@ -288,6 +318,8 @@ export default function App() {
     bulkDownloadLabel: bulkBusy ? 'Exporting…' : 'Bulk ZIP',
     bulkBusy,
     onResetAll,
+    onExportTweaks,
+    onImportTweaks,
     slots,
     setImage,
     resetImage,

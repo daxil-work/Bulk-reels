@@ -37,6 +37,8 @@ export default function SettingsPanel({
   bulkDownloadLabel,
   bulkBusy,
   onResetAll,
+  onExportTweaks,
+  onImportTweaks,
   slots,
   setImage,
   resetImage,
@@ -65,6 +67,8 @@ export default function SettingsPanel({
           bulkLabel={bulkDownloadLabel}
           bulkDisabled={bulkBusy}
           onResetAll={onResetAll}
+          onExportTweaks={onExportTweaks}
+          onImportTweaks={onImportTweaks}
         />
       </div>
 

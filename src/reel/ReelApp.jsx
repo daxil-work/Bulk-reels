@@ -99,7 +99,7 @@ export default function ReelApp() {
         ? "Saved as WEBM ✓ (browser couldn't encode MP4)."
         : rec.ext === 'error'
           ? 'Export failed — try Chrome or Edge.'
-          : `Exports a ${Math.round(TT.DURATION)}s · ${RW}×${RH} MP4.`;
+          : ``;
 
   return (
     <>
@@ -131,24 +131,42 @@ export default function ReelApp() {
         <Sprite start={TT.after[0]} end={TT.after[1]}>
           <FullShot src={hero.src} kbFrom={kbOut[0]} kbTo={kbOut[1]} posY="24%" />
         </Sprite>
-        <Sprite start={TT.aLabel[0]} end={TT.aLabel[1]}>
-          <ShotLabel label={t.afterLabel} sub={hero.n} pal={pal} fonts={fonts} accent />
+        <Sprite start={TT.after[0] + 0.25} end={TT.after[1] - 0.35}>
+          <CollectionLabel
+            pal={pal}
+            fonts={fonts}
+            count={LOOKS.length}
+            themeName={t.themeName}
+          />
         </Sprite>
 
-        {montage.map((l, i) => (
-          <Sprite key={l.n} start={TT.mStart + i * TT.mStep} end={TT.mStart + i * TT.mStep + TT.mDur}>
-            <FullShot
-              src={l.src}
-              kbFrom={(i % 2 ? kbOut : kbIn)[0]}
-              kbTo={(i % 2 ? kbOut : kbIn)[1]}
-              posY="22%"
-              z={2 + (i % 2)}
-            />
-          </Sprite>
-        ))}
-        <Sprite start={TT.cLabel[0]} end={TT.cLabel[1]}>
-          <CollectionLabel pal={pal} fonts={fonts} />
-        </Sprite>
+        {montage.map((l, i) => {
+          const shotStart = TT.mStart + i * TT.mStep;
+          const shotEnd = shotStart + TT.mDur;
+          const labelStart = shotStart + 0.25;
+          const labelEnd = shotEnd - 0.35;
+          return (
+            <React.Fragment key={l.n}>
+              <Sprite start={shotStart} end={shotEnd}>
+                <FullShot
+                  src={l.src}
+                  kbFrom={(i % 2 ? kbOut : kbIn)[0]}
+                  kbTo={(i % 2 ? kbOut : kbIn)[1]}
+                  posY="22%"
+                  z={2 + (i % 2)}
+                />
+              </Sprite>
+              <Sprite start={labelStart} end={labelEnd}>
+                <CollectionLabel
+                  pal={pal}
+                  fonts={fonts}
+                  count={LOOKS.length}
+                  themeName={t.themeName}
+                />
+              </Sprite>
+            </React.Fragment>
+          );
+        })}
 
         <Sprite start={TT.end[0]} end={TT.end[1]}>
           <EndCard pal={pal} fonts={fonts} t={t} />
@@ -247,12 +265,6 @@ export default function ReelApp() {
           step={1}
           unit="%"
           onChange={(v) => setTweak('motion', v)}
-        />
-        <TweakSelect
-          label="Featured 'After' look"
-          value={t.hero}
-          options={LOOKS.map((l) => l.n)}
-          onChange={(v) => setTweak('hero', v)}
         />
 
         <TweakSection label="Opening" />

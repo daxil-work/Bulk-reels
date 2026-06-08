@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { parseThemeFolderFiles } from './themeImport.js';
 import { parseThemePack, downloadThemePackJson } from './themePack.js';
 import { createTheme, defaultTweaksForTheme, themeToImages } from './themes.js';
+import { mergeImportedTweaks } from './tweakPack.js';
 import { fileToStoredDataUrl } from './storage.js';
 
 const COLLECTION_KEY = 'reel-themes-collection';
@@ -114,6 +115,38 @@ export function useThemeCollection() {
     });
   }, [selectedTheme, updateTheme]);
 
+  const mergeTweaksForTheme = useCallback((theme, imported) => {
+    const lookNames = theme.looks.map((l) => l.n);
+    const defaults = defaultTweaksForTheme(theme.displayName, lookNames);
+    let merged = mergeImportedTweaks(defaults, imported);
+    if (merged.hero && !lookNames.includes(merged.hero)) {
+      merged = { ...merged, hero: lookNames[lookNames.length - 1] || merged.hero };
+    }
+    return { ...merged, themeName: theme.displayName };
+  }, []);
+
+  const replaceThemeTweaks = useCallback(
+    (imported) => {
+      if (!selectedTheme) return;
+      updateTheme(selectedTheme.id, {
+        tweaks: mergeTweaksForTheme(selectedTheme, imported),
+      });
+    },
+    [selectedTheme, updateTheme, mergeTweaksForTheme]
+  );
+
+  const applyTweaksToAllThemes = useCallback(
+    (imported) => {
+      setThemes((prev) =>
+        prev.map((theme) => ({
+          ...theme,
+          tweaks: mergeTweaksForTheme(theme, imported),
+        }))
+      );
+    },
+    [mergeTweaksForTheme]
+  );
+
   const resetThemeImages = useCallback(() => {
     if (!selectedTheme) return;
     // Re-import would be needed; for bulk themes we reset tweaks only on "reset all"
@@ -159,8 +192,8 @@ export function useThemeCollection() {
     [selectedThemeId]
   );
 
-  const importFolder = useCallback(async (fileList) => {
-    const { themes: imported, warnings } = await parseThemeFolderFiles(fileList);
+  const importFolder = useCallback(async (fileList, tweakTemplate = null) => {
+    const { themes: imported, warnings } = await parseThemeFolderFiles(fileList, tweakTemplate);
     setImportWarnings(warnings);
     if (!imported.length) return { count: 0, warnings };
 
@@ -214,6 +247,8 @@ export function useThemeCollection() {
     updateTheme,
     setThemeTweak,
     resetThemeTweaks,
+    replaceThemeTweaks,
+    applyTweaksToAllThemes,
     resetThemeImages,
     setThemeImage,
     deleteThemeLook,

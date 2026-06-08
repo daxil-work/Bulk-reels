@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSprite, useTime, Easing, clamp } from '../engine/animations.jsx';
-import { lerp, fadeIO, TXT_SHADOW, LOGO_GLOW_SRC } from './config.js';
+import { lerp, fadeIO, TXT_SHADOW, LOGO_GLOW_SRC, collectionSubtext } from './config.js';
 import { loadImg } from './drawReel.js';
 import { keyBlackToTransparent } from './logoUtils.js';
 
@@ -556,8 +556,8 @@ export function EndCard({ pal, fonts, t }) {
   return <SlotScene o={o} sections={sections} />;
 }
 
-export function CollectionLabel({ pal, fonts, count = 9, anim, pos }) {
-  const label = count === 1 ? 'One traditional look' : `${count} traditional looks`;
+export function CollectionLabel({ pal, fonts, count = 9, themeName, anim, pos }) {
+  const label = collectionSubtext(count, themeName);
   return (
     <ShotLabel
       label="The Collection"
