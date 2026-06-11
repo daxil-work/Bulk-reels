@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Free Photoshoot · Reel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Serif+Display:ital@0;1&family=Marcellus&family=Lora:ital,wght@0,500;0,600;1,500;1,600&family=Jost:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; background: #04060a; overflow: hidden; font-family: 'Jost', sans-serif; }
+  #root { position: fixed; inset: 0; }
+
+  .stage { position: fixed; inset: 0; display: grid; place-items: center; }
+  .reelCanvas { box-shadow: 0 30px 80px -30px rgba(0,0,0,0.8); border-radius: 4px; cursor: pointer; }
+
+  .dlbtn {
+    position: fixed; top: 16px; left: 16px; z-index: 2147483647;
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: 'Jost', sans-serif; font-weight: 500; font-size: 14px; letter-spacing: 0.08em;
+    color: #04121f; background: var(--btn, #b4d8ff);
+    border: none; border-radius: 999px; padding: 11px 18px; cursor: pointer;
+    box-shadow: 0 8px 24px -8px rgba(0,0,0,0.6); transition: transform .15s, filter .15s;
+  }
+  .dlbtn:hover { transform: translateY(-1px); filter: brightness(1.06); }
+  .dlbtn:disabled { cursor: default; opacity: 0.92; }
+  .dlbtn svg { width: 16px; height: 16px; }
+  .dlnote {
+    position: fixed; top: 58px; left: 16px; z-index: 2147483647;
+    font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.6); max-width: 260px; line-height: 1.45;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  }
+
+  .transport {
+    position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px; z-index: 2147483600;
+    display: flex; align-items: center; gap: 14px; padding: 10px 16px;
+    background: rgba(10,16,26,0.72); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;
+  }
+  .playbtn { width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
+    background: #b4d8ff; color: #04121f; display: grid; place-items: center; }
+  .playbtn svg { width: 15px; height: 15px; }
+  .scrub { width: 46vw; max-width: 560px; accent-color: #b4d8ff; cursor: pointer; }
+  .tcode { font-variant-numeric: tabular-nums; font-size: 12px; color: rgba(255,255,255,0.7);
+    letter-spacing: 0.05em; min-width: 86px; text-align: center; }
+  .chiprow { display: flex; gap: 6px; }
+  .chip { font-size: 10px; letter-spacing: 0.06em; color: rgba(255,255,255,0.55);
+    padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,0.06); white-space: nowrap; }
+  .chip.on { color: #04121f; background: #b4d8ff; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/mp4-muxer@5.2.1/build/mp4-muxer.js"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="fp-draw.jsx"></script>
+
+  <script type="text/babel">
+    const { useEffect, useState, useRef } = React;
+    const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+    const hexRgb = FP.util.hexRgb, luma = FP.util.luma;
+
+    const RATIOS = { "9:16": [1080, 1920], "4:5": [1080, 1350], "1:1": [1080, 1080], "16:9": [1920, 1080] };
+    const PALETTES = {
+      brand:    { bg: "#002b4d", glow: "#0047cc", accent: "#b4d8ff", ink: "#ffffff" },
+      ocean:    { bg: "#021a33", glow: "#0047cc", accent: "#7fb8ff", ink: "#eaf3ff" },
+      midnight: { bg: "#0c0a10", glow: "#22314a", accent: "#b4d8ff", ink: "#f3f6fb" },
+    };
+    const SCENE_NAMES = ["Hook", "Problem", "Reveal", "Gallery", "Offer", "CTA"];
+
+    function loadImg(src) {
+      return new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
+    }
+    async function loadAll() {
+      const srcs = [FP.BEFORE, FP.LOGO, FP.LOGO_GLOW, ...FP.POOL];
+      const map = {};
+      await Promise.all(srcs.map(async (s) => { map[s] = await loadImg(s); }));
+      return map;
+    }
+
+    // ── palette resolution (matches the other reels: accent / text / bg overrides) ──
+    function resolvePal(t) {
+      const base = PALETTES[t.palette] || PALETTES.brand;
+      const pal = { ...base, accent: t.accent || base.accent, bg: t.bgColor || base.bg };
+      if (luma(pal.bg) > 0.62) { pal.ink = "#13243a"; pal.muted = "rgba(19,36,58,0.78)"; }
+      else { pal.muted = "rgba(255,255,255,0.85)"; }
+      if (t.textColor) { const [r, g, b] = hexRgb(t.textColor); pal.ink = t.textColor; pal.muted = `rgba(${r},${g},${b},0.82)`; }
+      return pal;
+    }
+    function buildCfg(t, imgs, W, H) {
+      return { W, H, t, imgs, pal: resolvePal(t), FR: FP.buildFR(t), scenes: FP.scenesOf(t), offerBg: t.offerBg || "#ffffff" };
+    }
+
+    // ════════════════════════ EXPORT ════════════════════════
+    async function preloadForExport(t) {
+      try {
+        await Promise.all(FP.ALL_FONTS.map(f => document.fonts.load(`800 90px "${f}"`)).concat(
+          FP.ALL_FONTS.map(f => document.fonts.load(`500 40px "${f}"`))));
+        await document.fonts.ready;
+      } catch (e) {}
+      return await loadAll();
+    }
+    async function encodeMP4(cfg, D, onProgress) {
+      const MM = window.Mp4Muxer;
+      if (!window.VideoEncoder || !window.VideoFrame || !MM) return null;
+      const fps = 30, frames = Math.round(D * fps), W = cfg.W, H = cfg.H;
+      const canvas = document.createElement("canvas"); canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      let muxer, encoder;
+      try {
+        muxer = new MM.Muxer({ target: new MM.ArrayBufferTarget(), video: { codec: "avc", width: W, height: H }, fastStart: "in-memory" });
+        encoder = new VideoEncoder({ output: (c, m) => muxer.addVideoChunk(c, m), error: (e) => console.error(e) });
+      } catch (e) { return null; }
+      let ok = false;
+      for (const codec of ["avc1.640028", "avc1.4d4028", "avc1.420028"]) {
+        try {
+          if (VideoEncoder.isConfigSupported) { const s = await VideoEncoder.isConfigSupported({ codec, width: W, height: H, bitrate: 12000000, framerate: fps }); if (!s || !s.supported) continue; }
+          encoder.configure({ codec, width: W, height: H, bitrate: 12000000, framerate: fps }); ok = true; break;
+        } catch (e) {}
+      }
+      if (!ok) { try { encoder.close(); } catch (e) {} return null; }
+      try {
+        for (let i = 0; i < frames; i++) {
+          FP.draw(ctx, i / fps, cfg);
+          const fr = new VideoFrame(canvas, { timestamp: Math.round(i * 1e6 / fps), duration: Math.round(1e6 / fps) });
+          encoder.encode(fr, { keyFrame: i % fps === 0 }); fr.close();
+          if (encoder.encodeQueueSize > 12) await new Promise(r => setTimeout(r, 0));
+          if (onProgress && i % 4 === 0) onProgress(i / frames);
+        }
+        await encoder.flush(); muxer.finalize();
+        return new Blob([muxer.target.buffer], { type: "video/mp4" });
+      } catch (e) { console.error(e); return null; }
+    }
+    function pickMime() {
+      for (const c of ["video/mp4;codecs=avc1.640028", "video/mp4", "video/webm;codecs=vp9", "video/webm"]) {
+        try { if (window.MediaRecorder && MediaRecorder.isTypeSupported(c)) return c; } catch (e) {}
+      }
+      return "video/webm";
+    }
+    async function recordRealtime(cfg, D, onProgress) {
+      const W = cfg.W, H = cfg.H;
+      const canvas = document.createElement("canvas"); canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      const mime = pickMime(), stream = canvas.captureStream(30);
+      const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 12000000 });
+      const chunks = []; rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      const done = new Promise((resolve) => { rec.onstop = () => resolve({ blob: new Blob(chunks, { type: mime }), ext: mime.indexOf("mp4") >= 0 ? "mp4" : "webm" }); });
+      rec.start();
+      const start = performance.now();
+      await new Promise((resolve) => {
+        const frame = () => {
+          const tt = (performance.now() - start) / 1000;
+          if (tt >= D) { FP.draw(ctx, D - 0.001, cfg); setTimeout(() => { try { rec.stop(); } catch (e) {} }, 250); resolve(); return; }
+          FP.draw(ctx, tt, cfg); onProgress && onProgress(tt / D); requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+      });
+      return done;
+    }
+    function downloadBlob(blob, ext) {
+      const url = URL.createObjectURL(blob); const a = document.createElement("a");
+      a.href = url; a.download = "free-photoshoot-reel." + ext; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+    }
+
+    // ════════════════════════ TWEAK DEFAULTS ════════════════════════
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "ratio": "9:16",
+      "palette": "brand",
+      "accent": "#b4d8ff",
+      "textColor": "#ffffff",
+      "bgColor": "#0c0a10",
+      "offerBg": "#f4f7fb",
+      "transStyle": "Dissolve",
+      "sceneTrans": 0.6,
+      "s2sweep": 5.2,
+      "s4layout": "2 × 3 grid",
+      "s4textColor": "#ffffff",
+      "s4bg": "#f2f2f3",
+      "s5S1": "Middle",
+      "s5S2": "Middle",
+      "s5S3": "Bottom",
+      "s6S1": "Middle",
+      "s6S2": "Middle",
+      "s6S3": "Bottom",
+      "d1": 3.5,
+      "d2": 6.5,
+      "d3": 10,
+      "d4": 8.5,
+      "d5": 9.5,
+      "d6": 10,
+      "hookImg": "assets\/before.png",
+      "s2studio": "uploads\/4.png",
+      "kicker": "RarestPrompt",
+      "s1line1": "We gave this photoshoot",
+      "s1line2": "for FREE",
+      "s2text": "Phone photos aren't enough for memories like these.",
+      "s3text": "Studio-grade photoshoot. Zero cost.",
+      "s4text": "Real babies. Real families. Real magic.",
+      "s5line1": "Join the RarestPrompt Community",
+      "s5line2": "Every week, 2–3 families get a FREE professional photoshoot.",
+      "s5line3": "Limited slots · No hidden cost",
+      "s6head": "Grab your FREE slot this week",
+      "s6sub": "Link in bio · Limited seats every Sunday",
+      "s6btn": "Join the Community  →",
+      "fontDisplay": "Default",
+      "sizeDisplay": 100,
+      "fontSerif": "Cormorant Garamond",
+      "sizeSerif": 120,
+      "fontBody": "Lora",
+      "sizeBody": 90,
+      "fontLabel": "Default",
+      "sizeLabel": 95
+    }/*EDITMODE-END*/;
+
+    function ColorField({ label, value, onChange, fallback }) {
+      return (
+        <TweakRow label={label} value={value || "auto"}>
+          <input type="color" value={value || fallback || "#002b4d"} onChange={(e) => onChange(e.target.value)}
+            style={{ width: "100%", height: 30, padding: 0, border: "none", background: "none", cursor: "pointer", borderRadius: 8 }} />
+        </TweakRow>
+      );
+    }
+    const ImgPick = ({ label, value, onChange }) => (
+      <TweakSelect label={label} value={value}
+        options={["assets/before.png", ...FP.POOL]}
+        onChange={onChange} />
+    );
+
+    function App() {
+      const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+      const [imgs, setImgs] = useState(null);
+      const [playing, setPlaying] = useState(true);
+      const [time, setTime] = useState(() => { const v = parseFloat(localStorage.getItem("fp-reel:t")); return isNaN(v) ? 0 : v; });
+      const [rec, setRec] = useState({ on: false, p: 0, mode: null });
+      const canvasRef = useRef(null);
+      const timeRef = useRef(time);
+      const cfgRef = useRef(null);
+      const playRef = useRef(playing);
+      const recRef = useRef(false);
+      playRef.current = playing;
+
+      const dims = RATIOS[t.ratio] || RATIOS["9:16"];
+      const [W, H] = dims;
+      const D = FP.durationOf(t);
+
+      useEffect(() => { loadAll().then(setImgs); }, []);
+
+      // keep a fresh cfg for the RAF loop without re-subscribing
+      cfgRef.current = imgs ? buildCfg(t, imgs, W, H) : null;
+
+      // fit canvas into viewport
+      useEffect(() => {
+        const fit = () => {
+          const cv = canvasRef.current; if (!cv) return;
+          const vw = window.innerWidth, vh = window.innerHeight;
+          const sc = Math.min((vw - 40) / W, (vh - 120) / H);
+          cv.style.width = (W * sc) + "px"; cv.style.height = (H * sc) + "px";
+        };
+        fit(); window.addEventListener("resize", fit);
+        return () => window.removeEventListener("resize", fit);
+      }, [W, H]);
+
+      // main render loop — bulletproof: the next frame is ALWAYS scheduled,
+      // so one bad draw can never freeze playback.
+      useEffect(() => {
+        let raf, last = performance.now(), loggedErr = false;
+        const tick = (now) => {
+          raf = requestAnimationFrame(tick);
+          try {
+            const dt = Math.min((now - last) / 1000, 0.1); last = now;
+            if (playRef.current && !recRef.current) {
+              let nt = timeRef.current + dt;
+              if (nt >= D) nt = 0;
+              timeRef.current = nt; setTime(nt);
+              if (Math.floor(nt * 4) !== Math.floor((nt - dt) * 4)) localStorage.setItem("fp-reel:t", nt.toFixed(2));
+            }
+            const cv = canvasRef.current, cfg = cfgRef.current;
+            if (cv && cfg) FP.draw(cv.getContext("2d"), clamp(timeRef.current, 0, D - 0.001), cfg);
+          } catch (e) { if (!loggedErr) { console.error("draw frame error:", e); loggedErr = true; } }
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+      }, [D]);
+
+      const seek = (v) => { timeRef.current = v; setTime(v); localStorage.setItem("fp-reel:t", v.toFixed(2)); };
+
+      const onDownload = async () => {
+        if (rec.on || !imgs) return;
+        recRef.current = true; setPlaying(false);
+        setRec({ on: true, p: 0, mode: "prep" });
+        try {
+          const exImgs = await preloadForExport(t);
+          const cfg = buildCfg(t, exImgs, W, H);
+          setRec({ on: true, p: 0, mode: "encode" });
+          let blob = await encodeMP4(cfg, D, (p) => setRec({ on: true, p, mode: "encode" }));
+          let ext = "mp4";
+          if (!blob) { setRec({ on: true, p: 0, mode: "record" }); const r = await recordRealtime(cfg, D, (p) => setRec({ on: true, p, mode: "record" })); blob = r.blob; ext = r.ext; }
+          if (blob) downloadBlob(blob, ext);
+        } catch (e) { console.error(e); }
+        setRec({ on: false, p: 0, mode: null }); recRef.current = false; setPlaying(true);
+      };
+
+      const totalDur = D.toFixed(1);
+      const curScene = (FP.scenesOf(t).find(s => time >= s.start && time < s.end) || { i: 5 }).i;
+      const recLabel = rec.mode === "prep" ? "Preparing…" : rec.mode === "encode" ? `Encoding ${Math.round(rec.p * 100)}%`
+        : rec.mode === "record" ? `Recording ${Math.round(rec.p * 100)}%` : "Download video";
+
+      const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+      return (
+        <React.Fragment>
+          <div className="stage">
+            <canvas ref={canvasRef} width={W} height={H} className="reelCanvas"
+              onClick={() => setPlaying(p => !p)} />
+          </div>
+
+          <button className="dlbtn" style={{ "--btn": t.accent || "#b4d8ff" }} onClick={onDownload} disabled={rec.on}>
+            {rec.on ? null : (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" strokeLinecap="round" strokeLinejoin="round"/></svg>)}
+            {recLabel}
+          </button>
+          <div className="dlnote">{rec.on ? "Keep this tab in front while it renders." : `${t.ratio} · ${RATIOS[t.ratio][0]}×${RATIOS[t.ratio][1]} · ${totalDur}s MP4`}</div>
+
+          <div className="transport">
+            <button className="playbtn" onClick={() => setPlaying(p => !p)}>
+              {playing ? (<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>)
+                : (<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>)}
+            </button>
+            <input className="scrub" type="range" min={0} max={D} step={0.01} value={clamp(time, 0, D)}
+              onChange={(e) => seek(parseFloat(e.target.value))} />
+            <div className="tcode">{fmt(time)} / {fmt(D)}</div>
+            <div className="chiprow">
+              {SCENE_NAMES.map((n, i) => <span key={n} className={"chip" + (i === curScene ? " on" : "")}>{n}</span>)}
+            </div>
+          </div>
+
+          <TweaksPanel title="Tweaks">
+            <TweakSection label="Format & palette" />
+            <TweakRadio label="Aspect ratio" value={t.ratio} options={["9:16", "4:5", "1:1", "16:9"]} onChange={(v) => setTweak("ratio", v)} />
+            <TweakSelect label="Palette" value={t.palette} options={["brand", "ocean", "midnight"]} onChange={(v) => setTweak("palette", v)} />
+            <TweakColor label="Accent" value={t.accent} options={["#b4d8ff", "#0047cc", "#002b4d", "#ffffff"]} onChange={(v) => setTweak("accent", v)} />
+            <ColorField label="Accent (custom)" value={t.accent} onChange={(v) => setTweak("accent", v)} fallback="#b4d8ff" />
+            <TweakColor label="Background" value={t.bgColor} options={["#002b4d", "#021a33", "#0c0a10", "#0047cc"]} onChange={(v) => setTweak("bgColor", v)} />
+            <ColorField label="Background (custom)" value={t.bgColor} onChange={(v) => setTweak("bgColor", v)} fallback="#002b4d" />
+            <TweakColor label="Text color" value={t.textColor} options={["#ffffff", "#b4d8ff", "#002b4d", "#e0bd6e"]} onChange={(v) => setTweak("textColor", v)} />
+            <ColorField label="Text color (custom)" value={t.textColor} onChange={(v) => setTweak("textColor", v)} fallback="#ffffff" />
+            <TweakColor label="Offer-card background" value={t.offerBg} options={["#ffffff", "#f4f7fb", "#b4d8ff", "#002b4d"]} onChange={(v) => setTweak("offerBg", v)} />
+
+            <TweakSection label="Transitions & pacing" />
+            <TweakRadio label="Transition" value={t.transStyle} options={["Dissolve", "Slide", "Cut"]} onChange={(v) => setTweak("transStyle", v)} />
+            <TweakSlider label="Transition length" value={t.sceneTrans} min={0.1} max={1.4} step={0.05} unit="s" onChange={(v) => setTweak("sceneTrans", v)} />
+            <TweakSlider label="Scene 2 · comparison sweep" value={t.s2sweep} min={1} max={6} step={0.2} unit="s" onChange={(v) => setTweak("s2sweep", v)} />
+            <TweakRow label="Total length" value={`${totalDur}s`}><div style={{ height: 2 }} /></TweakRow>
+            <TweakSlider label="1 · Hook" value={t.d1} min={2} max={8} step={0.5} unit="s" onChange={(v) => setTweak("d1", v)} />
+            <TweakSlider label="2 · Problem" value={t.d2} min={3} max={12} step={0.5} unit="s" onChange={(v) => setTweak("d2", v)} />
+            <TweakSlider label="3 · Reveal" value={t.d3} min={6} max={22} step={0.5} unit="s" onChange={(v) => setTweak("d3", v)} />
+            <TweakSlider label="4 · Gallery" value={t.d4} min={6} max={22} step={0.5} unit="s" onChange={(v) => setTweak("d4", v)} />
+            <TweakSlider label="5 · Offer" value={t.d5} min={4} max={16} step={0.5} unit="s" onChange={(v) => setTweak("d5", v)} />
+            <TweakSlider label="6 · CTA" value={t.d6} min={4} max={16} step={0.5} unit="s" onChange={(v) => setTweak("d6", v)} />
+
+            <TweakSection label="Photos" />
+            <ImgPick label="Hook photo" value={t.hookImg} onChange={(v) => setTweak("hookImg", v)} />
+            <ImgPick label="Studio (split right)" value={t.s2studio} onChange={(v) => setTweak("s2studio", v)} />
+
+            <TweakSection label="Scene 1 · Hook" />
+            <TweakText label="Line 1" value={t.s1line1} onChange={(v) => setTweak("s1line1", v)} />
+            <TweakText label="Payoff line" value={t.s1line2} onChange={(v) => setTweak("s1line2", v)} />
+
+            <TweakSection label="Scene 2 · Problem" />
+            <TweakText label="Line" value={t.s2text} onChange={(v) => setTweak("s2text", v)} />
+
+            <TweakSection label="Scene 3 · Reveal" />
+            <TweakText label="Headline (word-by-word)" value={t.s3text} onChange={(v) => setTweak("s3text", v)} />
+
+            <TweakSection label="Scene 4 · Gallery" />
+            <TweakSelect label="Grid layout" value={t.s4layout} options={["2 × 3 grid", "2 × 2 grid", "3 × 3 grid", "3 × 4 grid", "Bento", "Sliding columns", "Sliding rows"]} onChange={(v) => setTweak("s4layout", v)} />
+            <TweakColor label="Scene background" value={t.s4bg} options={["#002b4d", "#021a33", "#0c0a10", "#0047cc", "#ffffff"]} onChange={(v) => setTweak("s4bg", v)} />
+            <ColorField label="Scene background (custom)" value={t.s4bg} onChange={(v) => setTweak("s4bg", v)} fallback="#002b4d" />
+            <TweakColor label="Caption text color" value={t.s4textColor} options={["#ffffff", "#b4d8ff", "#e0bd6e", "#002b4d"]} onChange={(v) => setTweak("s4textColor", v)} />
+            <ColorField label="Caption text (custom)" value={t.s4textColor} onChange={(v) => setTweak("s4textColor", v)} fallback="#ffffff" />
+            <TweakText label="Line" value={t.s4text} onChange={(v) => setTweak("s4text", v)} />
+
+            <TweakSection label="Scene 5 · Offer" />
+            <TweakSelect label="1 · Logo + wordmark" value={t.s5S1} options={["Top", "Middle", "Bottom"]} onChange={(v) => setTweak("s5S1", v)} />
+            <TweakSelect label="2 · Community headline" value={t.s5S2} options={["Top", "Middle", "Bottom"]} onChange={(v) => setTweak("s5S2", v)} />
+            <TweakSelect label="3 · Offer details" value={t.s5S3} options={["Top", "Middle", "Bottom"]} onChange={(v) => setTweak("s5S3", v)} />
+            <TweakText label="Line 1" value={t.s5line1} onChange={(v) => setTweak("s5line1", v)} />
+            <TweakText label="Line 2" value={t.s5line2} onChange={(v) => setTweak("s5line2", v)} />
+            <TweakText label="Line 3" value={t.s5line3} onChange={(v) => setTweak("s5line3", v)} />
+
+            <TweakSection label="Scene 6 · CTA" />
+            <TweakSelect label="1 · Logo + wordmark" value={t.s6S1} options={["Top", "Middle", "Bottom"]} onChange={(v) => setTweak("s6S1", v)} />
+            <TweakSelect label="2 · Headline" value={t.s6S2} options={["Top", "Middle", "Bottom"]} onChange={(v) => setTweak("s6S2", v)} />
+            <TweakSelect label="3 · Link + button" value={t.s6S3} options={["Top", "Middle", "Bottom"]} onChange={(v) => setTweak("s6S3", v)} />
+            <TweakText label="Wordmark" value={t.kicker} onChange={(v) => setTweak("kicker", v)} />
+            <TweakText label="Headline" value={t.s6head} onChange={(v) => setTweak("s6head", v)} />
+            <TweakText label="Sub-text" value={t.s6sub} onChange={(v) => setTweak("s6sub", v)} />
+            <TweakText label="Button" value={t.s6btn} onChange={(v) => setTweak("s6btn", v)} />
+
+            <TweakSection label="Text · fonts & sizes" />
+            <TweakSelect label="Display font" value={t.fontDisplay || "Default"} options={["Default", ...FP.ALL_FONTS]} onChange={(v) => setTweak("fontDisplay", v)} />
+            <TweakSlider label="Display size" value={t.sizeDisplay} min={50} max={180} step={5} unit="%" onChange={(v) => setTweak("sizeDisplay", v)} />
+            <TweakSelect label="Serif font" value={t.fontSerif || "Default"} options={["Default", ...FP.ALL_FONTS]} onChange={(v) => setTweak("fontSerif", v)} />
+            <TweakSlider label="Serif size" value={t.sizeSerif} min={50} max={180} step={5} unit="%" onChange={(v) => setTweak("sizeSerif", v)} />
+            <TweakSelect label="Body font" value={t.fontBody || "Default"} options={["Default", ...FP.ALL_FONTS]} onChange={(v) => setTweak("fontBody", v)} />
+            <TweakSlider label="Body size" value={t.sizeBody} min={50} max={180} step={5} unit="%" onChange={(v) => setTweak("sizeBody", v)} />
+            <TweakSelect label="Label font" value={t.fontLabel || "Default"} options={["Default", ...FP.ALL_FONTS]} onChange={(v) => setTweak("fontLabel", v)} />
+            <TweakSlider label="Label size" value={t.sizeLabel} min={50} max={180} step={5} unit="%" onChange={(v) => setTweak("sizeLabel", v)} />
+          </TweaksPanel>
+        </React.Fragment>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+
+  <template id="__bundler_thumbnail">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#002b4d"/>
+      <circle cx="50" cy="42" r="20" fill="none" stroke="#b4d8ff" stroke-width="3"/>
+      <path d="M50 34v16M42 42h16" stroke="#b4d8ff" stroke-width="3" stroke-linecap="round"/>
+      <text x="50" y="78" text-anchor="middle" fill="#fff" font-family="sans-serif" font-size="11" font-weight="700">FREE</text>
+    </svg>
+  </template>
+</body>
+</html>

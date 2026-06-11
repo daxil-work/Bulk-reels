@@ -12,6 +12,7 @@ import { useThemeCollection } from './state/useThemeCollection.js';
 import { themeToSlots } from './state/themes.js';
 import { loadSelectedIdea, saveSelectedIdea } from './state/storage.js';
 import { preloadAssets, encodeMP4, recordRealtime, downloadBlob } from './reel/export.js';
+import { fpPreloadAssets, encodeFpMP4, recordFpRealtime } from './reel/fpExport.js';
 import { exportThemesZip, downloadZipBlob } from './reel/bulkExport.js';
 import { sanitizeFilename } from './state/themes.js';
 import { downloadTweaksJson, mergeImportedTweaks, readTweakPackFile } from './state/tweakPack.js';
@@ -116,11 +117,12 @@ export default function App() {
   const lookNames = images?.looks?.map((l) => l.n) ?? [];
 
   useEffect(() => {
+    if (selectedIdeaId !== 'before-after') return;
     if (!t || !lookNames.length || !t.hero) return;
     if (!lookNames.includes(t.hero)) {
       setTweak('hero', lookNames[lookNames.length - 1]);
     }
-  }, [lookNames, t?.hero, setTweak]);
+  }, [selectedIdeaId, lookNames, t?.hero, setTweak]);
 
   const built = useMemo(() => {
     if (!images) return null;
@@ -147,25 +149,35 @@ export default function App() {
       : images;
     const exportTweaks = themeForExport ? themeForExport.tweaks : t;
     const builtExport = idea.buildCfg({ t: exportTweaks, images: exportImages });
+    const isCanvas = idea.exportKind === 'canvas';
     const exportCfg = { ...builtExport.cfg };
-    exportCfg.imgs = await preloadAssets(
-      builtExport.cfg.headFam,
-      builtExport.srcs,
-      builtExport.cfg.bodyFam,
-      exportCfg.t
-    );
+    if (isCanvas) {
+      exportCfg.imgs = await fpPreloadAssets(exportCfg.t, builtExport.srcs);
+    } else {
+      exportCfg.imgs = await preloadAssets(
+        builtExport.cfg.headFam,
+        builtExport.srcs,
+        builtExport.cfg.bodyFam,
+        exportCfg.t
+      );
+    }
     let blob = null;
     let ext = 'mp4';
+    const duration = builtExport.TT?.DURATION;
     if (window.VideoEncoder) {
       setRec((r) => ({ ...r, mode: 'encode', p: 0 }));
-      blob = await encodeMP4(exportCfg, (p) => setRec((r) => ({ ...r, p })));
+      blob = isCanvas
+        ? await encodeFpMP4(exportCfg, duration, (p) => setRec((r) => ({ ...r, p })))
+        : await encodeMP4(exportCfg, (p) => setRec((r) => ({ ...r, p })));
     }
     if (blob) {
       downloadBlob(blob, 'mp4', downloadName);
       ext = 'mp4';
     } else {
       setRec((r) => ({ ...r, mode: 'record', p: 0 }));
-      const res = await recordRealtime(exportCfg, (p) => setRec((r) => ({ ...r, p })));
+      const res = isCanvas
+        ? await recordFpRealtime(exportCfg, duration, (p) => setRec((r) => ({ ...r, p })))
+        : await recordRealtime(exportCfg, (p) => setRec((r) => ({ ...r, p })));
       downloadBlob(res.blob, res.ext, downloadName);
       ext = res.ext;
     }
@@ -174,9 +186,10 @@ export default function App() {
 
   const onDownload = async () => {
     if (rec.on || !images?.before) return;
+    const defaultName = idea.id === 'free-photoshoot' ? 'free-photoshoot-reel' : 'before-after-reel';
     const name = useThemeMode && selectedTheme
       ? sanitizeFilename(selectedTheme.displayName)
-      : 'before-after-reel';
+      : defaultName;
     setRec({ on: true, p: 0, mode: 'prep', ext: null, label: name });
     try {
       const ext = await runExport(
